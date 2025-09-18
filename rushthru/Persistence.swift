@@ -10,6 +10,7 @@
 import Foundation
 
 enum Persistence {
+    @MainActor
     static func bootstrapForPreview() -> AppEnvironment {
         AppEnvironment(preview: true)
     }
