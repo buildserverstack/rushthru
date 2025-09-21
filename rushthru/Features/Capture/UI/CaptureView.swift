@@ -265,8 +265,6 @@ private enum ImagePickerSource: Identifiable {
         UIImagePickerController.isSourceTypeAvailable(sourceType)
     }
 
-    static var camera: ImagePickerSource { .camera }
-    static var photoLibrary: ImagePickerSource { .photoLibrary }
 }
 
 private struct ImagePicker: UIViewControllerRepresentable {
