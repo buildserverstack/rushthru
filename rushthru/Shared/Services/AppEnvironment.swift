@@ -27,7 +27,12 @@ final class AppEnvironment: ObservableObject {
         self.refill = RefillService(inventoryService: inventoryService)
         self.search = SearchCoordinator(inventoryService: inventoryService)
         self.csv = CSVCoordinator(inventoryService: inventoryService, locationCoordinator: locationCoordinator, activityLogger: activityLogger)
-        self.capture = CaptureCoordinator(inventoryService: inventoryService)
+        #if canImport(Vision)
+        let recognizer: VisionTextRecognizing = VisionTextRecognizer()
+        #else
+        let recognizer: VisionTextRecognizing = NullVisionRecognizer()
+        #endif
+        self.capture = CaptureCoordinator(inventoryService: inventoryService, visionRecognizer: recognizer)
         self.bulkCounts = BulkCountCoordinator(inventoryService: inventoryService)
         self.auth = AuthService()
 

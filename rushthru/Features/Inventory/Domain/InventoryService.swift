@@ -28,6 +28,10 @@ final class InventoryService: ObservableObject {
         activityLogger.log(action: .create, entity: .item, entityID: item.id, before: nil, after: encode(item))
     }
 
+    func existingItem(matching identity: ItemIdentity) -> InventoryItem? {
+        items.first { $0.normalizedIdentity == identity }
+    }
+
     func replaceAll(with newItems: [InventoryItem]) async {
         items = newItems
         lastUpdated = Date()
