@@ -128,19 +128,46 @@ struct CaptureView: View {
     }
 
     private var recognizedSection: some View {
-        Section("Recognized details") {
+        Section("Recognized text") {
             if capture.lastResult.fields.isEmpty {
                 Text("Scan a label to see suggested fields.")
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(capture.lastResult.fields, id: \.self) { field in
-                    HStack {
-                        Text(label(for: field.type))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text(field.value)
-                            .font(.body)
+                Text("Tap a suggestion to fill a field.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                ForEach(OCRCandidateField.FieldType.allCases, id: \.self) { fieldType in
+                    let options = options(for: fieldType)
+                    if !options.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(label(for: fieldType))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+
+                            ForEach(options, id: \.self) { option in
+                                Button {
+                                    apply(option)
+                                } label: {
+                                    HStack {
+                                        Text(option.value)
+                                            .font(.body)
+                                        Spacer()
+                                        if isCandidateSelected(option) {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundStyle(.tint)
+                                        } else {
+                                            Image(systemName: "plus.circle")
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                            }
+                        }
+                        .padding(.vertical, 4)
                     }
                 }
             }
@@ -188,6 +215,80 @@ struct CaptureView: View {
         case .sizeML:
             return "Size"
         }
+    }
+
+    private func options(for fieldType: OCRCandidateField.FieldType) -> [OCRCandidateField] {
+        capture.lastResult.fields
+            .filter { $0.type == fieldType }
+            .sorted { $0.confidence > $1.confidence }
+    }
+
+    private func apply(_ candidate: OCRCandidateField) {
+        switch candidate.type {
+        case .name:
+            editableFields.name = candidate.value.trimmingCharacters(in: .whitespacesAndNewlines)
+        case .subName:
+            editableFields.subName = candidate.value.trimmingCharacters(in: .whitespacesAndNewlines)
+        case .type:
+            if let matchedType = normalizedType(from: candidate.value) {
+                editableFields.type = matchedType
+            }
+        case .sizeML:
+            if let size = parseSizeValue(from: candidate.value) {
+                editableFields.size = String(size)
+            }
+        }
+    }
+
+    private func isCandidateSelected(_ candidate: OCRCandidateField) -> Bool {
+        switch candidate.type {
+        case .name:
+            return compare(candidate.value, editableFields.name)
+        case .subName:
+            return compare(candidate.value, editableFields.subName)
+        case .type:
+            guard let matchedType = normalizedType(from: candidate.value) else { return false }
+            return editableFields.type == matchedType
+        case .sizeML:
+            guard let size = parseSizeValue(from: candidate.value), let currentSize = Int(editableFields.size) else { return false }
+            return size == currentSize
+        }
+    }
+
+    private func compare(_ lhs: String, _ rhs: String) -> Bool {
+        lhs.trimmingCharacters(in: .whitespacesAndNewlines)
+            .caseInsensitiveCompare(rhs.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame
+    }
+
+    private func normalizedType(from value: String) -> InventoryItem.ItemType? {
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return InventoryItem.ItemType.allCases.first { type in
+            type.rawValue == normalized || type.displayName.lowercased() == normalized
+        }
+    }
+
+    private func parseSizeValue(from value: String) -> Int? {
+        let lowered = value.lowercased()
+        let pattern = "(\\d+(?:\\.\\d+)?)\\s*(ml|milliliter|millilitre|l|liter|litre)?"
+        if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
+            let range = NSRange(location: 0, length: lowered.utf16.count)
+            if let match = regex.firstMatch(in: lowered, options: [], range: range),
+               let valueRange = Range(match.range(at: 1), in: lowered) {
+                let unitRange = Range(match.range(at: 2), in: lowered)
+                let valueString = String(lowered[valueRange])
+                if let numeric = Double(valueString) {
+                    let unit = unitRange.map { String(lowered[$0]) } ?? "ml"
+                    if unit.hasPrefix("l") {
+                        return Int((numeric * 1000).rounded())
+                    } else {
+                        return Int(numeric.rounded())
+                    }
+                }
+            }
+        }
+
+        let digits = value.filter { $0.isNumber }
+        return Int(digits)
     }
 
     private func save() {

@@ -208,7 +208,7 @@ struct CSVImportSummary: Hashable {
 }
 
 struct OCRCandidateField: Hashable {
-    enum FieldType {
+    enum FieldType: CaseIterable {
         case name, subName, type, sizeML
     }
 

@@ -96,59 +96,95 @@ final class CaptureCoordinator: ObservableObject {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
 
-        let name = lines.first ?? ""
-        let subName = lines.dropFirst().first ?? ""
-        let type = inferType(from: allText)
-        let sizeML = extractVolume(from: allText) ?? 750
-
         var candidateFields: [OCRCandidateField] = []
-        if !name.isEmpty {
-            candidateFields.append(OCRCandidateField(type: .name, value: name, confidence: Double(observations.first?.confidence ?? 0)))
-        }
-        if !subName.isEmpty {
-            candidateFields.append(OCRCandidateField(type: .subName, value: subName, confidence: Double(observations.dropFirst().first?.confidence ?? observations.first?.confidence ?? 0)))
-        }
-        candidateFields.append(OCRCandidateField(type: .type, value: type.displayName, confidence: 0.7))
-        candidateFields.append(OCRCandidateField(type: .sizeML, value: "\(sizeML)", confidence: 0.6))
+        var seenByType: [OCRCandidateField.FieldType: Set<String>] = [:]
 
-        let normalized = name.isEmpty ? nil : NormalizedFields(
-            name: name,
-            subName: subName,
-            type: type,
-            sizeML: sizeML,
+        func register(_ value: String, for type: OCRCandidateField.FieldType, confidence: Double) {
+            let normalizedValue = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard !normalizedValue.isEmpty else { return }
+            var seen = seenByType[type] ?? []
+            guard seen.insert(normalizedValue).inserted else { return }
+            seenByType[type] = seen
+            candidateFields.append(OCRCandidateField(type: type, value: value, confidence: confidence))
+        }
+
+        for (index, line) in lines.enumerated() {
+            let confidence = Double(observations[min(index, observations.count - 1)].confidence)
+            if index == 0 {
+                register(line, for: .name, confidence: confidence)
+            } else {
+                register(line, for: .subName, confidence: confidence)
+                register(line, for: .name, confidence: confidence * 0.85)
+            }
+        }
+
+        let loweredText = allText.lowercased()
+        var detectedTypes: [InventoryItem.ItemType] = []
+        for type in InventoryItem.ItemType.allCases where type != .other {
+            let token = type.rawValue.lowercased()
+            if loweredText.contains(token) || loweredText.contains(type.displayName.lowercased()) {
+                detectedTypes.append(type)
+            }
+        }
+        if detectedTypes.isEmpty {
+            detectedTypes = [.other]
+        }
+        for (index, itemType) in detectedTypes.enumerated() {
+            let confidence = max(0.3, 0.9 - Double(index) * 0.1)
+            register(itemType.displayName, for: .type, confidence: confidence)
+        }
+
+        var volumeCandidates: [Int] = []
+        let pattern = "(\\d+(?:\\.\\d+)?)\\s*(ml|milliliter|millilitre|l|liter|litre)?"
+        if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
+            let range = NSRange(location: 0, length: loweredText.utf16.count)
+            regex.enumerateMatches(in: loweredText, options: [], range: range) { match, _, _ in
+                guard let match = match,
+                      let valueRange = Range(match.range(at: 1), in: loweredText) else { return }
+                let unitRange = Range(match.range(at: 2), in: loweredText)
+                let valueString = String(loweredText[valueRange])
+                guard let value = Double(valueString) else { return }
+                let unit = unitRange.map { String(loweredText[$0]) } ?? "ml"
+                let milliliters: Int
+                if unit.hasPrefix("l") {
+                    milliliters = Int((value * 1000).rounded())
+                } else {
+                    milliliters = Int(value.rounded())
+                }
+                if !volumeCandidates.contains(milliliters) {
+                    volumeCandidates.append(milliliters)
+                }
+            }
+        }
+        if volumeCandidates.isEmpty {
+            volumeCandidates.append(750)
+        }
+        for (index, volume) in volumeCandidates.enumerated() {
+            let confidence = max(0.3, 0.75 - Double(index) * 0.1)
+            register("\(volume)", for: .sizeML, confidence: confidence)
+        }
+
+        let bestName = candidateFields.first(where: { $0.type == .name })?.value.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !bestName.isEmpty else {
+            return (nil, candidateFields)
+        }
+        let bestSubName = candidateFields.first(where: { $0.type == .subName })?.value.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let typeValue = candidateFields.first(where: { $0.type == .type })?.value ?? InventoryItem.ItemType.other.displayName
+        let normalizedType = InventoryItem.ItemType.allCases.first { type in
+            type.displayName.caseInsensitiveCompare(typeValue) == .orderedSame || type.rawValue.caseInsensitiveCompare(typeValue) == .orderedSame
+        } ?? .other
+        let bestSize = volumeCandidates.first ?? 750
+
+        let normalized = NormalizedFields(
+            name: bestName,
+            subName: bestSubName,
+            type: normalizedType,
+            sizeML: bestSize,
             minimum: 0,
             initialQuantity: 1
         )
 
         return (normalized, candidateFields)
-    }
-
-    private func extractVolume(from text: String) -> Int? {
-        let lowered = text.lowercased()
-        let pattern = "(\\d+(?:\\.\\d+)?)\\s*(ml|milliliter|millilitre|l|liter|litre)"
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
-        let range = NSRange(location: 0, length: lowered.utf16.count)
-        guard let match = regex.firstMatch(in: lowered, options: [], range: range) else { return nil }
-        guard let valueRange = Range(match.range(at: 1), in: lowered),
-              let unitRange = Range(match.range(at: 2), in: lowered) else { return nil }
-        let valueString = String(lowered[valueRange])
-        guard let value = Double(valueString) else { return nil }
-        let unit = String(lowered[unitRange])
-        if unit.hasPrefix("l") {
-            return Int((value * 1000).rounded())
-        } else {
-            return Int(value.rounded())
-        }
-    }
-
-    private func inferType(from text: String) -> InventoryItem.ItemType {
-        let lowered = text.lowercased()
-        for type in InventoryItem.ItemType.allCases where type != .other {
-            if lowered.contains(type.rawValue) {
-                return type
-            }
-        }
-        return .other
     }
 }
 
