@@ -24,13 +24,19 @@ final class AppEnvironment: ObservableObject {
         self.inventory = inventoryService
         self.locations = locationCoordinator
         self.activity = activityLogger
-        self.refill = RefillService(inventoryService: inventoryService)
+
+        #if canImport(Vision)
+        let shelfRecognizer: ShelfRecognizing = DinoV3ShelfRecognizer()
+        #else
+        let shelfRecognizer: ShelfRecognizing = NullShelfRecognizer()
+        #endif
+        self.refill = RefillService(inventoryService: inventoryService, shelfRecognizer: shelfRecognizer)
         self.search = SearchCoordinator(inventoryService: inventoryService)
         self.csv = CSVCoordinator(inventoryService: inventoryService, locationCoordinator: locationCoordinator, activityLogger: activityLogger)
         #if canImport(Vision)
-        let recognizer: DinoV3TextRecognizing = DinoV3TextRecognizer()
+        let recognizer: DonutTextRecognizing = DonutSmallTextRecognizer()
         #else
-        let recognizer: DinoV3TextRecognizing = NullDinoV3Recognizer()
+        let recognizer: DonutTextRecognizing = NullDonutTextRecognizer()
         #endif
         self.capture = CaptureCoordinator(inventoryService: inventoryService, recognizer: recognizer)
         self.bulkCounts = BulkCountCoordinator(inventoryService: inventoryService)

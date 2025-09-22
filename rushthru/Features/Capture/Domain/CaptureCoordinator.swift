@@ -15,9 +15,9 @@ final class CaptureCoordinator: ObservableObject {
     @Published var errorMessage: String?
 
     private let inventoryService: InventoryService
-    private let recognizer: DinoV3TextRecognizing
+    private let recognizer: DonutTextRecognizing
 
-    init(inventoryService: InventoryService, recognizer: DinoV3TextRecognizing) {
+    init(inventoryService: InventoryService, recognizer: DonutTextRecognizing) {
         self.inventoryService = inventoryService
         self.recognizer = recognizer
     }
@@ -97,7 +97,7 @@ final class CaptureCoordinator: ObservableObject {
         resetDraft()
     }
 
-    private func parse(observations: [DinoV3TextObservation]) -> (normalizedFields: NormalizedFields?, fields: [OCRCandidateField]) {
+    private func parse(observations: [DonutTextObservation]) -> (normalizedFields: NormalizedFields?, fields: [OCRCandidateField]) {
         guard !observations.isEmpty else { return (nil, []) }
 
         let allText = observations.map { $0.text }.joined(separator: "\n")

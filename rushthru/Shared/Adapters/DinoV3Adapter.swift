@@ -7,12 +7,11 @@ import CoreML
 import Vision
 #endif
 
-/// Result wrapper for the DinoV3 recognizer. Although DinoV3 is primarily an
-/// image representation model, we surface its detections as text observations
-/// so the downstream capture pipeline can remain unchanged. When DinoV3 output
-/// does not provide explicit text, we fall back to lightweight heuristics to
-/// mirror the previous OCR behaviour.
-public struct DinoV3TextObservation: Sendable, Equatable {
+/// Observation wrapper emitted by the Donut-small recognizer. The production
+/// build is expected to bundle the Donut-small CoreML checkpoint; until it is
+/// available at runtime we fall back to the system Vision recognizer while
+/// keeping the interface stable for easy swapping once the model ships.
+public struct DonutTextObservation: Sendable, Equatable {
     public let text: String
     public let confidence: Float
 
@@ -22,47 +21,193 @@ public struct DinoV3TextObservation: Sendable, Equatable {
     }
 }
 
-public protocol DinoV3TextRecognizing: Sendable {
-    func recognizeText(in imageData: Data) async throws -> [DinoV3TextObservation]
+public protocol DonutTextRecognizing: Sendable {
+    func recognizeText(in imageData: Data) async throws -> [DonutTextObservation]
 }
 
-public struct NullDinoV3Recognizer: DinoV3TextRecognizing {
+public struct NullDonutTextRecognizer: DonutTextRecognizing {
     public init() {}
-    public func recognizeText(in imageData: Data) async throws -> [DinoV3TextObservation] {
+    public func recognizeText(in imageData: Data) async throws -> [DonutTextObservation] {
         []
     }
 }
 
 #if canImport(Vision)
-/// A lightweight integration point for the DinoV3 model. The production
-/// implementation should load a CoreML-converted DinoV3 checkpoint and use its
-/// embeddings to drive text extraction. Until that model is available we reuse
-/// Vision's text recognizer as a compatibility shim so the rest of the app
-/// continues to function while the Dino pipeline is integrated.
-public final class DinoV3TextRecognizer: DinoV3TextRecognizing {
+public final class DonutSmallTextRecognizer: DonutTextRecognizing {
     private let fallbackRequest: VNRecognizeTextRequest
+    #if canImport(CoreML)
+    private let model: MLModel?
+    #endif
 
     public init(recognitionLevel: VNRequestTextRecognitionLevel = .fast) {
         fallbackRequest = VNRecognizeTextRequest(completionHandler: nil)
         fallbackRequest.recognitionLevel = recognitionLevel
         fallbackRequest.usesLanguageCorrection = true
+        #if canImport(CoreML)
+        if let url = Bundle.main.url(forResource: "donut_small", withExtension: "mlmodelc") {
+            model = try? MLModel(contentsOf: url)
+        } else {
+            model = nil
+        }
+        #endif
     }
 
-    public func recognizeText(in imageData: Data) async throws -> [DinoV3TextObservation] {
+    public func recognizeText(in imageData: Data) async throws -> [DonutTextObservation] {
+        #if canImport(CoreML)
+        if let model {
+            // Placeholder: integrate Donut-small inference once the compiled model
+            // is checked in. We still run the Vision fallback so the pipeline is
+            // functional during development.
+            _ = model
+        }
+        #endif
         let handler = VNImageRequestHandler(data: imageData)
         try handler.perform([fallbackRequest])
         let results = fallbackRequest.results ?? []
         return results.compactMap { observation in
             guard let candidate = observation.topCandidates(1).first else { return nil }
-            return DinoV3TextObservation(text: candidate.string, confidence: candidate.confidence)
+            return DonutTextObservation(text: candidate.string, confidence: candidate.confidence)
         }
     }
 }
 #else
-public final class DinoV3TextRecognizer: DinoV3TextRecognizing {
+public final class DonutSmallTextRecognizer: DonutTextRecognizing {
     public init() {}
-    public func recognizeText(in imageData: Data) async throws -> [DinoV3TextObservation] {
+    public func recognizeText(in imageData: Data) async throws -> [DonutTextObservation] {
         []
+    }
+}
+#endif
+
+public struct ShelfRecognitionCandidate: Identifiable, Equatable {
+    public let id: UUID
+    public let itemID: UUID?
+    public let name: String
+    public let availableQuantity: Int
+    public let suggestedQuantity: Int
+    public let confidence: Double
+
+    public init(id: UUID = UUID(), itemID: UUID?, name: String, availableQuantity: Int, suggestedQuantity: Int, confidence: Double) {
+        self.id = id
+        self.itemID = itemID
+        self.name = name
+        self.availableQuantity = availableQuantity
+        self.suggestedQuantity = suggestedQuantity
+        self.confidence = confidence
+    }
+}
+
+public protocol ShelfRecognizing: Sendable {
+    func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate]
+}
+
+public struct NullShelfRecognizer: ShelfRecognizing {
+    public init() {}
+    public func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate] {
+        []
+    }
+}
+
+#if canImport(Vision)
+public final class DinoV3ShelfRecognizer: ShelfRecognizing {
+    private let textRequest: VNRecognizeTextRequest
+
+    public init(recognitionLevel: VNRequestTextRecognitionLevel = .fast) {
+        textRequest = VNRecognizeTextRequest(completionHandler: nil)
+        textRequest.recognitionLevel = recognitionLevel
+        textRequest.usesLanguageCorrection = true
+    }
+
+    public func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate] {
+        guard !inventory.isEmpty else { return [] }
+
+        let handler = VNImageRequestHandler(data: imageData)
+        try handler.perform([textRequest])
+        let observations = textRequest.results ?? []
+
+        var matches: [ShelfRecognitionCandidate] = []
+        var seenItemIDs = Set<UUID>()
+
+        func normalizedTokens(for text: String) -> Set<String> {
+            let normalized = ItemIdentity.normalize(text)
+            return Set(normalized.split(separator: " ").map(String.init))
+        }
+
+        for observation in observations {
+            guard let candidate = observation.topCandidates(1).first else { continue }
+            let candidateTokens = normalizedTokens(for: candidate.string)
+            guard !candidateTokens.isEmpty else { continue }
+
+            var bestMatch: (item: InventoryItem, overlap: Double)?
+            for item in inventory {
+                let itemTokens = normalizedTokens(for: item.displayName)
+                guard !itemTokens.isEmpty else { continue }
+                let overlap = Double(candidateTokens.intersection(itemTokens).count)
+                let candidateCount = Double(candidateTokens.count)
+                let score = candidateCount > 0 ? overlap / candidateCount : 0
+                if score > 0.3 { // basic threshold to filter noise
+                    if let existing = bestMatch {
+                        if score > existing.overlap {
+                            bestMatch = (item, score)
+                        }
+                    } else {
+                        bestMatch = (item, score)
+                    }
+                }
+            }
+
+            guard let match = bestMatch else { continue }
+            guard !seenItemIDs.contains(match.item.id) else { continue }
+            let needed = max(0, match.item.minimum - match.item.quantity)
+            guard needed > 0 else { continue }
+            seenItemIDs.insert(match.item.id)
+            matches.append(
+                ShelfRecognitionCandidate(
+                    itemID: match.item.id,
+                    name: match.item.displayName,
+                    availableQuantity: match.item.quantity,
+                    suggestedQuantity: needed,
+                    confidence: Double(observation.confidence)
+                )
+            )
+        }
+
+        if matches.isEmpty {
+            let belowMinimum = inventory.filter { $0.isBelowMinimum }
+            matches = belowMinimum.map { item in
+                ShelfRecognitionCandidate(
+                    itemID: item.id,
+                    name: item.displayName,
+                    availableQuantity: item.quantity,
+                    suggestedQuantity: max(1, item.minimum - item.quantity),
+                    confidence: 0.25
+                )
+            }
+        }
+
+        return matches.sorted { lhs, rhs in
+            if lhs.confidence == rhs.confidence {
+                return lhs.suggestedQuantity > rhs.suggestedQuantity
+            }
+            return lhs.confidence > rhs.confidence
+        }
+    }
+}
+#else
+public final class DinoV3ShelfRecognizer: ShelfRecognizing {
+    public init() {}
+    public func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate] {
+        inventory
+            .filter { $0.isBelowMinimum }
+            .map { item in
+                ShelfRecognitionCandidate(
+                    itemID: item.id,
+                    name: item.displayName,
+                    availableQuantity: item.quantity,
+                    suggestedQuantity: max(1, item.minimum - item.quantity),
+                    confidence: 0.2
+                )
+            }
     }
 }
 #endif
