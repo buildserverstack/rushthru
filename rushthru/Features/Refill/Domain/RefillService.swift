@@ -121,7 +121,8 @@ final class RefillService: ObservableObject {
         isScanningShelf = true
         shelfScanError = nil
         do {
-            let candidates = try await shelfRecognizer.analyzeShelf(imageData: data, inventory: inventoryService.items)
+            let inventorySnapshot = inventoryService.items.map(ShelfInventorySnapshot.init(item:))
+            let candidates = try await shelfRecognizer.analyzeShelf(imageData: data, inventory: inventorySnapshot)
             let mapped = candidates.map { candidate -> ShelfSuggestion in
                 let linkedItem = candidate.itemID.flatMap { id in
                     inventoryService.items.first(where: { $0.id == id })

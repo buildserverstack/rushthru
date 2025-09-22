@@ -98,12 +98,39 @@ public struct ShelfRecognitionCandidate: Identifiable, Equatable {
 }
 
 protocol ShelfRecognizing: Sendable {
-    func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate]
+    func analyzeShelf(imageData: Data, inventory: [ShelfInventorySnapshot]) async throws -> [ShelfRecognitionCandidate]
+}
+
+struct ShelfInventorySnapshot: Sendable {
+    let id: UUID
+    let displayName: String
+    let quantity: Int
+    let minimum: Int
+
+    var isBelowMinimum: Bool { quantity < minimum }
+
+    init(id: UUID, displayName: String, quantity: Int, minimum: Int) {
+        self.id = id
+        self.displayName = displayName
+        self.quantity = quantity
+        self.minimum = minimum
+    }
+}
+
+extension ShelfInventorySnapshot {
+    init(item: InventoryItem) {
+        self.init(
+            id: item.id,
+            displayName: item.displayName,
+            quantity: item.quantity,
+            minimum: item.minimum
+        )
+    }
 }
 
 struct NullShelfRecognizer: ShelfRecognizing {
     init() {}
-    func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate] {
+    func analyzeShelf(imageData: Data, inventory: [ShelfInventorySnapshot]) async throws -> [ShelfRecognitionCandidate] {
         []
     }
 }
@@ -118,7 +145,7 @@ final class DinoV3ShelfRecognizer: ShelfRecognizing {
         textRequest.usesLanguageCorrection = true
     }
 
-    func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate] {
+    func analyzeShelf(imageData: Data, inventory: [ShelfInventorySnapshot]) async throws -> [ShelfRecognitionCandidate] {
         guard !inventory.isEmpty else { return [] }
 
         let handler = VNImageRequestHandler(data: imageData)
@@ -138,7 +165,7 @@ final class DinoV3ShelfRecognizer: ShelfRecognizing {
             let candidateTokens = normalizedTokens(for: candidate.string)
             guard !candidateTokens.isEmpty else { continue }
 
-            var bestMatch: (item: InventoryItem, overlap: Double)?
+            var bestMatch: (item: ShelfInventorySnapshot, overlap: Double)?
             for item in inventory {
                 let itemTokens = normalizedTokens(for: item.displayName)
                 guard !itemTokens.isEmpty else { continue }
@@ -196,7 +223,7 @@ final class DinoV3ShelfRecognizer: ShelfRecognizing {
 #else
 final class DinoV3ShelfRecognizer: ShelfRecognizing {
     init() {}
-    func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate] {
+    func analyzeShelf(imageData: Data, inventory: [ShelfInventorySnapshot]) async throws -> [ShelfRecognitionCandidate] {
         inventory
             .filter { $0.isBelowMinimum }
             .map { item in
