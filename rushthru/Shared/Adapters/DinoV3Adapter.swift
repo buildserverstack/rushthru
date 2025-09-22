@@ -97,28 +97,28 @@ public struct ShelfRecognitionCandidate: Identifiable, Equatable {
     }
 }
 
-public protocol ShelfRecognizing: Sendable {
+protocol ShelfRecognizing: Sendable {
     func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate]
 }
 
-public struct NullShelfRecognizer: ShelfRecognizing {
-    public init() {}
-    public func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate] {
+struct NullShelfRecognizer: ShelfRecognizing {
+    init() {}
+    func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate] {
         []
     }
 }
 
 #if canImport(Vision)
-public final class DinoV3ShelfRecognizer: ShelfRecognizing {
+final class DinoV3ShelfRecognizer: ShelfRecognizing {
     private let textRequest: VNRecognizeTextRequest
 
-    public init(recognitionLevel: VNRequestTextRecognitionLevel = .fast) {
+    init(recognitionLevel: VNRequestTextRecognitionLevel = .fast) {
         textRequest = VNRecognizeTextRequest(completionHandler: nil)
         textRequest.recognitionLevel = recognitionLevel
         textRequest.usesLanguageCorrection = true
     }
 
-    public func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate] {
+    func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate] {
         guard !inventory.isEmpty else { return [] }
 
         let handler = VNImageRequestHandler(data: imageData)
@@ -194,9 +194,9 @@ public final class DinoV3ShelfRecognizer: ShelfRecognizing {
     }
 }
 #else
-public final class DinoV3ShelfRecognizer: ShelfRecognizing {
-    public init() {}
-    public func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate] {
+final class DinoV3ShelfRecognizer: ShelfRecognizing {
+    init() {}
+    func analyzeShelf(imageData: Data, inventory: [InventoryItem]) async throws -> [ShelfRecognitionCandidate] {
         inventory
             .filter { $0.isBelowMinimum }
             .map { item in
