@@ -81,7 +81,8 @@ final class CaptureCoordinator: ObservableObject {
             sizeML: fields.sizeML,
             quantity: fields.initialQuantity,
             minimum: fields.minimum,
-            primaryLocationID: nil
+            primaryLocationID: nil,
+            storeID: inventoryService.selectedStoreID ?? UUID()
         )
         await inventoryService.create(item: newItem)
         resetDraft()

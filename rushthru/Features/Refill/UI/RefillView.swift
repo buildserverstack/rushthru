@@ -45,7 +45,10 @@ struct RefillView: View {
                                 VStack(alignment: .leading) {
                                     Text(task.name)
                                         .font(.headline)
-                                    Text("Qty: \(task.quantity)")
+                                    Text("Requested: \(task.quantity)")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                    Text("Available: \(task.availableQuantity)")
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
                                 }

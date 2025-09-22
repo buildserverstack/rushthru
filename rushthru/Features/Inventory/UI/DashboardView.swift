@@ -156,4 +156,5 @@ struct DashboardView: View {
         .environmentObject(environment.inventory)
         .environmentObject(environment.refill)
         .environmentObject(environment.activity)
+        .environmentObject(environment.locations)
 }

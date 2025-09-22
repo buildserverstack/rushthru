@@ -46,8 +46,8 @@ final class AppEnvironment: ObservableObject {
     func start() async {
         guard !isReady else { return }
         await auth.bootstrap()
-        await inventory.bootstrap()
         await locations.bootstrap()
+        await inventory.bootstrap()
         await activity.bootstrap()
         await csv.bootstrap()
         await search.bootstrap()
@@ -57,9 +57,10 @@ final class AppEnvironment: ObservableObject {
     private func seedPreviewData() async {
         let location = LocationNode(parentID: nil, kind: .store, name: "Main Store", path: "Main Store")
         await locations.upsert(location: location)
-        let bourbon = InventoryItem(name: "Trailhead Bourbon", subName: "Single Barrel", type: .whiskey, sizeML: 750, quantity: 6, minimum: 4, primaryLocationID: location.id)
+        locations.selectedStoreID = location.id
+        let bourbon = InventoryItem(name: "Trailhead Bourbon", subName: "Single Barrel", type: .whiskey, sizeML: 750, quantity: 6, minimum: 4, primaryLocationID: location.id, storeID: location.id)
         await inventory.create(item: bourbon)
-        let tequila = InventoryItem(name: "Azure Agave", subName: "Reposado", type: .tequila, sizeML: 750, quantity: 3, minimum: 6, primaryLocationID: location.id)
+        let tequila = InventoryItem(name: "Azure Agave", subName: "Reposado", type: .tequila, sizeML: 750, quantity: 3, minimum: 6, primaryLocationID: location.id, storeID: location.id)
         await inventory.create(item: tequila)
         await search.bootstrap()
     }

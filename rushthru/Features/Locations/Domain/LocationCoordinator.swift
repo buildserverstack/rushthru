@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 final class LocationCoordinator: ObservableObject {
     @Published private(set) var locations: [LocationNode] = []
+    @Published var selectedStoreID: UUID?
     private let activityLogger: ActivityLogCoordinator
 
     init(activityLogger: ActivityLogCoordinator) {
@@ -13,6 +14,9 @@ final class LocationCoordinator: ObservableObject {
         if locations.isEmpty {
             let root = LocationNode(parentID: nil, kind: .store, name: "Store", path: "Store")
             locations.append(root)
+            selectedStoreID = root.id
+        } else if selectedStoreID == nil {
+            selectedStoreID = stores.first?.id
         }
     }
 
@@ -23,6 +27,9 @@ final class LocationCoordinator: ObservableObject {
         } else {
             locations.append(location)
             activityLogger.log(action: .create, entity: .location, entityID: location.id, before: nil, after: nil)
+            if location.kind == .store, selectedStoreID == nil {
+                selectedStoreID = location.id
+            }
         }
     }
 
@@ -34,5 +41,9 @@ final class LocationCoordinator: ObservableObject {
     func location(for id: UUID?) -> LocationNode? {
         guard let id else { return nil }
         return locations.first { $0.id == id }
+    }
+
+    var stores: [LocationNode] {
+        locations.filter { $0.kind == .store }
     }
 }

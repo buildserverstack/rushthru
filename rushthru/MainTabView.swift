@@ -42,8 +42,10 @@ struct MainTabView: View {
         .environmentObject(environment.inventory)
         .environmentObject(environment.refill)
         .environmentObject(environment.search)
+        .environmentObject(environment.locations)
         .environmentObject(environment.activity)
         .environmentObject(environment.csv)
         .environmentObject(environment.capture)
         .environmentObject(environment.bulkCounts)
+        .environmentObject(environment.auth)
 }

@@ -17,6 +17,7 @@ struct InventoryItem: Identifiable, Equatable, Hashable, Codable {
     var quantity: Int
     var minimum: Int
     var primaryLocationID: UUID?
+    var storeID: UUID
     var createdAt: Date
     var updatedAt: Date
 
@@ -31,6 +32,7 @@ struct InventoryItem: Identifiable, Equatable, Hashable, Codable {
         quantity: Int,
         minimum: Int = 0,
         primaryLocationID: UUID? = nil,
+        storeID: UUID,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -42,6 +44,7 @@ struct InventoryItem: Identifiable, Equatable, Hashable, Codable {
         self.quantity = quantity
         self.minimum = minimum
         self.primaryLocationID = primaryLocationID
+        self.storeID = storeID
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

@@ -65,7 +65,15 @@ final class CSVCoordinator: ObservableObject {
             let type = InventoryItem.ItemType(rawValue: values[3]) ?? .other
             let size = Int(values[4]) ?? 0
             let quantity = Int(values[5]) ?? 0
-            let item = InventoryItem(id: identifier, name: name, subName: subName, type: type, sizeML: size, quantity: quantity)
+            let item = InventoryItem(
+                id: identifier,
+                name: name,
+                subName: subName,
+                type: type,
+                sizeML: size,
+                quantity: quantity,
+                storeID: inventoryService.selectedStoreID ?? locationCoordinator.selectedStoreID ?? UUID()
+            )
             newItems.append(item)
         }
         await inventoryService.replaceAll(with: newItems)

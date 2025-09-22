@@ -139,6 +139,8 @@ struct ItemDetailView: View {
 
 #Preview {
     let environment = AppEnvironment(preview: true)
-    return ItemDetailView(item: environment.inventory.items.first ?? InventoryItem(name: "Sample", type: .whiskey, sizeML: 750, quantity: 4))
+    let fallbackStore = environment.locations.selectedStoreID ?? environment.locations.stores.first?.id ?? UUID()
+    let sample = InventoryItem(name: "Sample", type: .whiskey, sizeML: 750, quantity: 4, storeID: fallbackStore)
+    return ItemDetailView(item: environment.inventory.items.first ?? sample)
         .environmentObject(environment.inventory)
 }

@@ -4,6 +4,7 @@ struct SettingsView: View {
     @EnvironmentObject private var auth: AuthService
     @EnvironmentObject private var csv: CSVCoordinator
     @EnvironmentObject private var activity: ActivityLogCoordinator
+    @EnvironmentObject private var locations: LocationCoordinator
     @State private var pin: String = ""
     @State private var confirmPIN: String = ""
     @State private var exportText: String = ""
@@ -13,6 +14,20 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                if !locations.stores.isEmpty {
+                    Section("Store Filter") {
+                        Picker("Active Store", selection: Binding(
+                            get: { locations.selectedStoreID ?? locations.stores.first?.id },
+                            set: { locations.selectedStoreID = $0 }
+                        )) {
+                            ForEach(locations.stores) { store in
+                                Text(store.name)
+                                    .tag(Optional(store.id))
+                            }
+                        }
+                    }
+                }
+
                 Section("Security") {
                     SecureField("New PIN", text: $pin)
                     SecureField("Confirm PIN", text: $confirmPIN)
@@ -66,4 +81,5 @@ struct SettingsView: View {
         .environmentObject(environment.auth)
         .environmentObject(environment.csv)
         .environmentObject(environment.activity)
+        .environmentObject(environment.locations)
 }
