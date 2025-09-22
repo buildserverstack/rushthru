@@ -4,6 +4,7 @@ struct AppLockView: View {
     @EnvironmentObject private var authService: AuthService
     @ObservedObject var viewModel: LockViewModel
     @State private var lastInteraction = Date()
+    @State private var shakeTrigger: CGFloat = 0
 
     private let keypad: [[String]] = [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"], ["", "0", "⌫"]]
 
@@ -26,7 +27,8 @@ struct AppLockView: View {
                 }
             }
             .padding(.vertical, 8)
-
+            .modifier(ShakeEffect(animatableData: shakeTrigger))
+            
             if let error = viewModel.errorMessage {
                 Text(error)
                     .font(.footnote)
@@ -69,10 +71,8 @@ struct AppLockView: View {
             Button(action: submit) {
                 Text(viewModel.isProcessing ? "Checking…" : "Unlock")
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Capsule().fill(Color.accentColor))
-                    .foregroundStyle(Color.white)
             }
+            .buttonStyle(PrimaryButtonStyle())
             .disabled(viewModel.enteredPIN.count < 4 || viewModel.isProcessing)
             .padding(.horizontal, 48)
 
@@ -82,6 +82,18 @@ struct AppLockView: View {
         .background(Color(.systemBackground))
         .onAppear {
             lastInteraction = Date()
+        }
+        .onChange(of: viewModel.errorMessage) { newValue in
+            guard newValue != nil else { return }
+            withAnimation(.easeInOut(duration: DesignTokens.Motion.fast)) {
+                shakeTrigger += 1
+            }
+            HapticsManager.shared.playError()
+        }
+        .onChange(of: viewModel.state) { newState in
+            if newState == .unlocked {
+                HapticsManager.shared.playSuccess()
+            }
         }
     }
 

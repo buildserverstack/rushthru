@@ -9,6 +9,7 @@ struct CaptureView: View {
     @State private var confirmationMessage = ""
     @State private var showDuplicatePrompt = false
     @State private var duplicateContext: CaptureCoordinator.PendingDuplicate?
+    @Namespace private var suggestionNamespace
     #if canImport(UIKit)
     @State private var activeImageSource: ImagePickerSource?
     #endif
@@ -32,6 +33,13 @@ struct CaptureView: View {
             .onChange(of: capture.pendingDuplicate) { newValue in
                 duplicateContext = newValue
                 showDuplicatePrompt = newValue != nil
+                if newValue != nil {
+                    HapticsManager.shared.playWarning()
+                }
+            }
+            .onChange(of: capture.errorMessage) { newValue in
+                guard newValue != nil else { return }
+                HapticsManager.shared.playError()
             }
             .alert(confirmationMessage, isPresented: $showConfirmation) {
                 Button("OK", role: .cancel) { }
@@ -67,6 +75,16 @@ struct CaptureView: View {
             }
             #endif
         }
+        .listStyle(.insetGrouped)
+        .overlay(alignment: .top) {
+            if capture.isProcessing {
+                ProcessingBanner()
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .padding(.top, 8)
+            }
+        }
+        .animation(DesignTokens.Motion.spring(), value: capture.isProcessing)
+        .animation(.easeInOut(duration: DesignTokens.Motion.standard), value: capture.lastResult.fields)
     }
 
     private var scanSection: some View {
@@ -101,6 +119,7 @@ struct CaptureView: View {
                     .foregroundStyle(.red)
             }
         }
+        .listRowBackground(DesignTokens.Colors.surface)
     }
 
     private var detailsSection: some View {
@@ -150,6 +169,7 @@ struct CaptureView: View {
             }
             .pickerStyle(.menu)
         }
+        .listRowBackground(DesignTokens.Colors.surface)
     }
 
     private var saveSection: some View {
@@ -157,8 +177,10 @@ struct CaptureView: View {
             Button(action: save) {
                 Label("Save Item", systemImage: "tray.and.arrow.down")
             }
+            .buttonStyle(PrimaryButtonStyle())
             .disabled(editableFields.normalizedFields == nil || editableFields.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
+        .listRowBackground(DesignTokens.Colors.surface)
     }
 
     private var recognizedSection: some View {
@@ -181,7 +203,10 @@ struct CaptureView: View {
 
                             ForEach(options, id: \.self) { option in
                                 Button {
-                                    apply(option)
+                                    withAnimation(DesignTokens.Motion.spring()) {
+                                        apply(option)
+                                    }
+                                    HapticsManager.shared.playSelectionChanged()
                                 } label: {
                                     HStack {
                                         Text(option.value)
@@ -199,6 +224,8 @@ struct CaptureView: View {
                                 }
                                 .buttonStyle(.bordered)
                                 .controlSize(.small)
+                                .contentShape(RoundedRectangle(cornerRadius: DesignTokens.Radii.sm))
+                                .matchedGeometryEffect(id: option, in: suggestionNamespace, isSource: true)
                             }
                         }
                         .padding(.vertical, 4)
@@ -206,6 +233,7 @@ struct CaptureView: View {
                 }
             }
         }
+        .listRowBackground(DesignTokens.Colors.surface)
     }
 
     private var inventorySection: some View {
@@ -242,6 +270,7 @@ struct CaptureView: View {
                 }
             }
         }
+        .listRowBackground(DesignTokens.Colors.surface)
     }
 
     private var sortedInventory: [InventoryItem] {
@@ -358,9 +387,34 @@ struct CaptureView: View {
                 if capture.pendingDuplicate == nil {
                     confirmationMessage = "Saved \(normalized.name)."
                     showConfirmation = true
+                    HapticsManager.shared.playSuccess()
                 }
             }
         }
+    }
+}
+
+private struct ProcessingBanner: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            ProgressView()
+                .progressViewStyle(.circular)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Processing scan")
+                    .font(.subheadline.weight(.semibold))
+                Text("This usually takes a second")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .background(
+            Capsule(style: .continuous)
+                .fill(DesignTokens.Colors.elevatedSurface)
+                .shadow(color: DesignTokens.Shadow.card, radius: 12, x: 0, y: 6)
+        )
+        .padding(.horizontal)
     }
 }
 

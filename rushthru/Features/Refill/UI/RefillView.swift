@@ -29,10 +29,14 @@ struct RefillView: View {
                             Text(message)
                                 .font(.footnote)
                                 .foregroundStyle(.red)
+                                .transition(.opacity)
                         }
                         ForEach(refill.shelfSuggestions) { suggestion in
                             Button {
-                                refill.applyShelfSuggestion(suggestion)
+                                withAnimation(DesignTokens.Motion.spring()) {
+                                    refill.applyShelfSuggestion(suggestion)
+                                }
+                                HapticsManager.shared.playSuccess()
                             } label: {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(suggestion.displayName)
@@ -59,8 +63,10 @@ struct RefillView: View {
                             Text("Tap a suggestion to add it to your refill list.")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
+                                .transition(.opacity)
                         }
                     }
+                    .listRowBackground(DesignTokens.Colors.surface)
                 }
                 Section("Items below minimum") {
                     if refill.refillItems.isEmpty {
@@ -71,6 +77,7 @@ struct RefillView: View {
                             Button {
                                 selectedItem = item
                                 quantityMoved = max(1, item.minimum - item.quantity)
+                                HapticsManager.shared.playSelectionChanged()
                             } label: {
                                 VStack(alignment: .leading) {
                                     Text(item.displayName)
@@ -95,6 +102,7 @@ struct RefillView: View {
                         }
                     }
                 }
+                .listRowBackground(DesignTokens.Colors.surface)
 
                 Section("Manual refill items") {
                     if refill.manualTasks.isEmpty {
@@ -112,25 +120,33 @@ struct RefillView: View {
                                     Text("Available: \(task.availableQuantity)")
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
-                                    if let storeName = locations.storeName(for: task.storeID) {
-                                        Text(storeName)
-                                            .font(.footnote)
-                                            .foregroundStyle(.secondary)
-                                    }
+                                if let storeName = locations.storeName(for: task.storeID) {
+                                    Text(storeName)
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
                                 }
-                                Spacer()
-                                Button("Strike") {
+                            }
+                            Spacer()
+                            Button("Strike") {
+                                withAnimation(DesignTokens.Motion.spring()) {
                                     refill.strikeManual(taskID: task.id)
                                 }
-                                .buttonStyle(.borderedProminent)
+                                HapticsManager.shared.playSuccess()
                             }
-                        }
-                        .onDelete { indexSet in
-                            refill.removeManualTasks(at: indexSet)
+                            .buttonStyle(PrimaryButtonStyle(isCompact: true))
                         }
                     }
+                    .onDelete { indexSet in
+                        refill.removeManualTasks(at: indexSet)
+                    }
                 }
+                .listRowBackground(DesignTokens.Colors.surface)
             }
+            }
+            .listStyle(.insetGrouped)
+            .animation(DesignTokens.Motion.spring(), value: refill.shelfSuggestions)
+            .animation(DesignTokens.Motion.spring(), value: refill.refillItems)
+            .animation(DesignTokens.Motion.spring(), value: refill.manualTasks)
             .sheet(item: $selectedItem) { item in
                 NavigationStack {
                     Form {
@@ -199,6 +215,7 @@ struct RefillView: View {
                                 refill.addManualTask(name: manualName, quantity: manualQuantity)
                                 showAddManual = false
                                 resetManualForm()
+                                HapticsManager.shared.playSuccess()
                             }
                             .disabled(manualName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
@@ -210,15 +227,21 @@ struct RefillView: View {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
                         showShelfScanner = true
+                        HapticsManager.shared.playSelectionChanged()
                     } label: {
                         Label("Scan", systemImage: "camera.viewfinder")
                     }
                     Button {
                         showAddManual = true
+                        HapticsManager.shared.playSelectionChanged()
                     } label: {
                         Label("Add", systemImage: "plus")
                     }
                 }
+            }
+            .onChange(of: refill.shelfScanError) { error in
+                guard error != nil else { return }
+                HapticsManager.shared.playError()
             }
         }
     }
@@ -242,27 +265,32 @@ struct RefillShelfScannerView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.secondary.opacity(0.12))
-                        .frame(height: 220)
-                    if let previewImage {
-                        previewImage
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: .infinity, maxHeight: 220)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    } else {
-                        VStack(spacing: 8) {
-                            Image(systemName: "camera.viewfinder")
-                                .font(.system(size: 42))
-                                .foregroundStyle(.secondary)
-                            Text("Capture a shelf to suggest refills")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
+                SurfaceCard {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: DesignTokens.Radii.md)
+                            .fill(DesignTokens.Colors.elevatedSurface)
+                            .frame(height: 220)
+                        if let previewImage {
+                            previewImage
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxWidth: .infinity, maxHeight: 220)
+                                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radii.md))
+                                .transition(.scale.combined(with: .opacity))
+                        } else {
+                            VStack(spacing: 8) {
+                                Image(systemName: "camera.viewfinder")
+                                    .font(.system(size: 42))
+                                    .foregroundStyle(.secondary)
+                                Text("Capture a shelf to suggest refills")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding()
+                            .transition(.opacity)
                         }
-                        .padding()
                     }
+                    .frame(maxWidth: .infinity)
                 }
 
                 if isLoadingImage {
@@ -282,7 +310,7 @@ struct RefillShelfScannerView: View {
                     Label("Choose from library", systemImage: "photo.on.rectangle")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(PrimaryButtonStyle())
 
                 #if canImport(UIKit)
                 Button {
@@ -291,7 +319,7 @@ struct RefillShelfScannerView: View {
                     Label("Take photo", systemImage: "camera.fill")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(PrimaryButtonStyle(isCompact: true))
                 .disabled(!CameraCaptureView.isCameraAvailable)
                 #endif
 
@@ -310,10 +338,12 @@ struct RefillShelfScannerView: View {
         }
         .onChange(of: pickerItem) { newValue in
             guard let newValue else { return }
+            HapticsManager.shared.playSelectionChanged()
             loadPhoto(from: newValue)
         }
         .onChange(of: refill.shelfSuggestions) { suggestions in
             if !suggestions.isEmpty && !refill.isScanningShelf {
+                HapticsManager.shared.playSuccess()
                 dismiss()
             }
         }
@@ -339,12 +369,14 @@ struct RefillShelfScannerView: View {
                     await MainActor.run {
                         processingMessage = "Unable to read the selected image."
                         isLoadingImage = false
+                        HapticsManager.shared.playError()
                     }
                 }
             } catch {
                 await MainActor.run {
                     processingMessage = "Failed to load photo."
                     isLoadingImage = false
+                    HapticsManager.shared.playError()
                 }
             }
         }
@@ -357,6 +389,9 @@ struct RefillShelfScannerView: View {
             isLoadingImage = false
             if processingMessage != nil, refill.shelfScanError == nil {
                 processingMessage = nil
+                HapticsManager.shared.playSuccess()
+            } else if refill.shelfScanError != nil {
+                HapticsManager.shared.playError()
             }
         }
     }

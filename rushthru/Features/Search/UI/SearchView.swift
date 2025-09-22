@@ -36,11 +36,13 @@ struct SearchView: View {
                         } else {
                             ForEach(search.history) { entry in
                                 Button(entry.query) {
+                                    HapticsManager.shared.playSelectionChanged()
                                     search.selectSuggestion(entry.query)
                                 }
                             }
                             Button(role: .destructive) {
                                 search.clearHistory()
+                                HapticsManager.shared.playWarning()
                             } label: {
                                 Text("Clear Recent Searches")
                             }
@@ -76,6 +78,9 @@ struct SearchView: View {
                     }
                 }
             }
+            .listStyle(.insetGrouped)
+            .animation(DesignTokens.Motion.spring(), value: search.results)
+            .animation(.easeInOut(duration: DesignTokens.Motion.standard), value: search.history)
             .navigationTitle("Search")
         }
     }
