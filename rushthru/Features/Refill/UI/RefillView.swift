@@ -88,6 +88,29 @@ struct RefillView: View {
                 NavigationStack {
                     Form {
                         TextField("Item name", text: $manualName)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.words)
+                        let suggestions = refill.suggestions(for: manualName)
+                        if !suggestions.isEmpty {
+                            Section("Suggestions") {
+                                ForEach(suggestions) { suggestion in
+                                    Button {
+                                        manualName = suggestion.displayName
+                                        let defaultQuantity = suggestion.minimum - suggestion.quantity
+                                        manualQuantity = max(1, min(500, defaultQuantity))
+                                    } label: {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(suggestion.displayName)
+                                                .font(.body)
+                                                .foregroundStyle(.primary)
+                                            Text("On hand: \(suggestion.quantity)  •  Min: \(suggestion.minimum)")
+                                                .font(.footnote)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         Stepper("Quantity needed: \(manualQuantity)", value: $manualQuantity, in: 1...500)
                     }
                     .navigationTitle("Add refill item")

@@ -42,6 +42,22 @@ final class RefillService: ObservableObject {
     func removeManualTasks(at offsets: IndexSet) {
         manualTasks.remove(atOffsets: offsets)
     }
+
+    func suggestions(for query: String, limit: Int = 6) -> [InventoryItem] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+        let lowercasedTokens = trimmed.lowercased().split(separator: " ")
+        guard !lowercasedTokens.isEmpty else { return [] }
+
+        return inventoryService.items
+            .filter { item in
+                let haystack = "\(item.name.lowercased()) \(item.subName.lowercased()) \(item.type.rawValue)"
+                return lowercasedTokens.allSatisfy { haystack.contains($0) }
+            }
+            .sorted { $0.name < $1.name }
+            .prefix(limit)
+            .map { $0 }
+    }
 }
 
 struct ManualRefillTask: Identifiable, Equatable {
