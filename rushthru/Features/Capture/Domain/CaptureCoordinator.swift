@@ -15,11 +15,11 @@ final class CaptureCoordinator: ObservableObject {
     @Published var errorMessage: String?
 
     private let inventoryService: InventoryService
-    private let visionRecognizer: VisionTextRecognizing
+    private let recognizer: DinoV3TextRecognizing
 
-    init(inventoryService: InventoryService, visionRecognizer: VisionTextRecognizing) {
+    init(inventoryService: InventoryService, recognizer: DinoV3TextRecognizing) {
         self.inventoryService = inventoryService
-        self.visionRecognizer = visionRecognizer
+        self.recognizer = recognizer
     }
 
     func bootstrap() async {}
@@ -29,7 +29,7 @@ final class CaptureCoordinator: ObservableObject {
         defer { isProcessing = false }
 
         do {
-            let observations = try await visionRecognizer.recognizeText(in: imageData)
+            let observations = try await recognizer.recognizeText(in: imageData)
             let parsed = parse(observations: observations)
             lastResult = OCRResult(fields: parsed.fields)
             if let normalized = parsed.normalizedFields {
@@ -97,7 +97,7 @@ final class CaptureCoordinator: ObservableObject {
         resetDraft()
     }
 
-    private func parse(observations: [RecognizedTextObservation]) -> (normalizedFields: NormalizedFields?, fields: [OCRCandidateField]) {
+    private func parse(observations: [DinoV3TextObservation]) -> (normalizedFields: NormalizedFields?, fields: [OCRCandidateField]) {
         guard !observations.isEmpty else { return (nil, []) }
 
         let allText = observations.map { $0.text }.joined(separator: "\n")

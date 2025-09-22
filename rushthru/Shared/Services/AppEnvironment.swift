@@ -28,11 +28,11 @@ final class AppEnvironment: ObservableObject {
         self.search = SearchCoordinator(inventoryService: inventoryService)
         self.csv = CSVCoordinator(inventoryService: inventoryService, locationCoordinator: locationCoordinator, activityLogger: activityLogger)
         #if canImport(Vision)
-        let recognizer: VisionTextRecognizing = VisionTextRecognizer()
+        let recognizer: DinoV3TextRecognizing = DinoV3TextRecognizer()
         #else
-        let recognizer: VisionTextRecognizing = NullVisionRecognizer()
+        let recognizer: DinoV3TextRecognizing = NullDinoV3Recognizer()
         #endif
-        self.capture = CaptureCoordinator(inventoryService: inventoryService, visionRecognizer: recognizer)
+        self.capture = CaptureCoordinator(inventoryService: inventoryService, recognizer: recognizer)
         self.bulkCounts = BulkCountCoordinator(inventoryService: inventoryService)
         self.auth = AuthService()
 
