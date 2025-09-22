@@ -10,23 +10,46 @@ struct SettingsView: View {
     @State private var exportText: String = ""
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
+    @State private var newStoreName: String = ""
+    @State private var storeStatus: String = ""
 
     var body: some View {
         NavigationStack {
             Form {
                 if !locations.stores.isEmpty {
                     Section("Store Filter") {
-                        Picker("Active Store", selection: Binding(
-                            get: { locations.selectedStoreID ?? locations.stores.first?.id },
-                            set: { locations.selectedStoreID = $0 }
-                        )) {
-                            ForEach(locations.stores) { store in
-                                Text(store.name)
-                                    .tag(Optional(store.id))
+                    Picker("Active Store", selection: Binding(
+                        get: { locations.selectedStoreID ?? locations.stores.first?.id },
+                        set: { locations.selectedStoreID = $0 }
+                    )) {
+                        ForEach(locations.stores) { store in
+                            Text(store.name)
+                                .tag(Optional(store.id))
+                        }
+                    }
+                    TextField("New store name", text: $newStoreName)
+                    Button("Add Store") {
+                        let trimmed = newStoreName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !trimmed.isEmpty else { return }
+                        Task {
+                            let added = await locations.createStore(named: trimmed)
+                            await MainActor.run {
+                                storeStatus = added ? "Added \(trimmed)" : "Store already exists"
+                                if added { newStoreName = "" }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    storeStatus = ""
+                                }
                             }
                         }
                     }
+                    .disabled(newStoreName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    if !storeStatus.isEmpty {
+                        Text(storeStatus)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
+            }
 
                 Section("Security") {
                     SecureField("New PIN", text: $pin)

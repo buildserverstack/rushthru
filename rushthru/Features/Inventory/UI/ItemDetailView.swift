@@ -2,12 +2,13 @@ import SwiftUI
 
 struct ItemDetailView: View {
     @EnvironmentObject private var inventory: InventoryService
+    @EnvironmentObject private var locations: LocationCoordinator
     private let itemID: UUID
 
     @State private var latestItem: InventoryItem
     @State private var name: String
     @State private var subName: String
-    @State private var type: InventoryItem.ItemType
+    @State private var type: String
     @State private var sizeML: Int
     @State private var quantity: Int
     @State private var minimum: Int
@@ -31,12 +32,18 @@ struct ItemDetailView: View {
                 TextField("Variant / Sub-label", text: $subName)
                     .textInputAutocapitalization(.words)
                 Picker("Type", selection: $type) {
-                    ForEach(InventoryItem.ItemType.allCases, id: \.self) { itemType in
-                        Text(itemType.displayName).tag(itemType)
+                    ForEach(inventory.availableTypes, id: \.self) { itemType in
+                        Text(itemType).tag(itemType)
                     }
                 }
                 Stepper(value: $sizeML, in: 50...10000, step: 10) {
                     Text("Bottle size: \(sizeML) mL")
+                }
+                if let storeName = locations.storeName(for: latestItem.storeID) {
+                    Label(storeName, systemImage: "building.2")
+                        .labelStyle(.titleAndIcon)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -140,7 +147,8 @@ struct ItemDetailView: View {
 #Preview {
     let environment = AppEnvironment(preview: true)
     let fallbackStore = environment.locations.selectedStoreID ?? environment.locations.stores.first?.id ?? UUID()
-    let sample = InventoryItem(name: "Sample", type: .whiskey, sizeML: 750, quantity: 4, storeID: fallbackStore)
+    let sample = InventoryItem(name: "Sample", type: "Whiskey", sizeML: 750, quantity: 4, storeID: fallbackStore)
     return ItemDetailView(item: environment.inventory.items.first ?? sample)
         .environmentObject(environment.inventory)
+        .environmentObject(environment.locations)
 }

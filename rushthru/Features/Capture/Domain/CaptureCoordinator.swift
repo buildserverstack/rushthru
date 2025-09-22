@@ -74,6 +74,11 @@ final class CaptureCoordinator: ObservableObject {
     }
 
     private func createItem(from fields: NormalizedFields) async {
+        guard let storeID = inventoryService.ensureActiveStoreID() else {
+            errorMessage = "Select a store before saving items."
+            return
+        }
+
         let newItem = InventoryItem(
             name: fields.name,
             subName: fields.subName,
@@ -82,7 +87,7 @@ final class CaptureCoordinator: ObservableObject {
             quantity: fields.initialQuantity,
             minimum: fields.minimum,
             primaryLocationID: nil,
-            storeID: inventoryService.selectedStoreID ?? UUID()
+            storeID: storeID
         )
         await inventoryService.create(item: newItem)
         resetDraft()
@@ -120,19 +125,20 @@ final class CaptureCoordinator: ObservableObject {
         }
 
         let loweredText = allText.lowercased()
-        var detectedTypes: [InventoryItem.ItemType] = []
-        for type in InventoryItem.ItemType.allCases where type != .other {
-            let token = type.rawValue.lowercased()
-            if loweredText.contains(token) || loweredText.contains(type.displayName.lowercased()) {
-                detectedTypes.append(type)
+        let knownTypes = inventoryService.availableTypes
+        var detectedTypes: [String] = []
+        for typeName in knownTypes {
+            let token = typeName.lowercased()
+            if loweredText.contains(token) {
+                detectedTypes.append(typeName)
             }
         }
         if detectedTypes.isEmpty {
-            detectedTypes = [.other]
+            detectedTypes = [knownTypes.last ?? "Other"]
         }
         for (index, itemType) in detectedTypes.enumerated() {
             let confidence = max(0.3, 0.9 - Double(index) * 0.1)
-            register(itemType.displayName, for: .type, confidence: confidence)
+            register(itemType, for: .type, confidence: confidence)
         }
 
         var volumeCandidates: [Int] = []
@@ -170,10 +176,8 @@ final class CaptureCoordinator: ObservableObject {
             return (nil, candidateFields)
         }
         let bestSubName = candidateFields.first(where: { $0.type == .subName })?.value.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let typeValue = candidateFields.first(where: { $0.type == .type })?.value ?? InventoryItem.ItemType.other.displayName
-        let normalizedType = InventoryItem.ItemType.allCases.first { type in
-            type.displayName.caseInsensitiveCompare(typeValue) == .orderedSame || type.rawValue.caseInsensitiveCompare(typeValue) == .orderedSame
-        } ?? .other
+        let typeValue = candidateFields.first(where: { $0.type == .type })?.value ?? (inventoryService.availableTypes.last ?? "Other")
+        let normalizedType = inventoryService.matchingType(for: typeValue) ?? typeValue
         let bestSize = volumeCandidates.first ?? 750
 
         let normalized = NormalizedFields(
@@ -192,14 +196,14 @@ final class CaptureCoordinator: ObservableObject {
 struct NormalizedFields: Equatable {
     var name: String
     var subName: String
-    var type: InventoryItem.ItemType
+    var type: String
     var sizeML: Int
     var minimum: Int
     var initialQuantity: Int
 
-    static let `default` = NormalizedFields(name: "", subName: "", type: .other, sizeML: 750, minimum: 0, initialQuantity: 1)
+    static let `default` = NormalizedFields(name: "", subName: "", type: InventoryItem.defaultTypes.last ?? "Other", sizeML: 750, minimum: 0, initialQuantity: 1)
 
-    init(name: String, subName: String, type: InventoryItem.ItemType, sizeML: Int, minimum: Int, initialQuantity: Int) {
+    init(name: String, subName: String, type: String, sizeML: Int, minimum: Int, initialQuantity: Int) {
         self.name = name
         self.subName = subName
         self.type = type

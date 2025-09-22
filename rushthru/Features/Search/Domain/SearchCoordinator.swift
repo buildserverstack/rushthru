@@ -8,7 +8,7 @@ final class SearchCoordinator: ObservableObject {
     @Published var query: String = "" {
         didSet { performSearch() }
     }
-    @Published var selectedType: InventoryItem.ItemType? {
+    @Published var selectedType: String? {
         didSet { performSearch() }
     }
 
@@ -29,12 +29,13 @@ final class SearchCoordinator: ObservableObject {
     func performSearch() {
         let tokens = query.lowercased().split(separator: " ")
         var items = inventoryService.items
-        if let type = selectedType {
-            items = items.filter { $0.type == type }
+        if let type = selectedType, !type.isEmpty {
+            let normalized = ItemIdentity.normalizeType(type)
+            items = items.filter { ItemIdentity.normalizeType($0.type) == normalized }
         }
         if !tokens.isEmpty {
             items = items.filter { item in
-                let haystack = "\(item.name.lowercased()) \(item.subName.lowercased()) \(item.type.rawValue) \(item.sizeML)"
+                let haystack = "\(item.name.lowercased()) \(item.subName.lowercased()) \(item.type.lowercased()) \(item.sizeML)"
                 return tokens.allSatisfy { haystack.contains($0) }
             }
         }

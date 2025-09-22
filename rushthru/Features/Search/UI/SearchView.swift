@@ -3,6 +3,7 @@ import SwiftUI
 struct SearchView: View {
     @EnvironmentObject private var search: SearchCoordinator
     @EnvironmentObject private var inventory: InventoryService
+    @EnvironmentObject private var locations: LocationCoordinator
 
     var body: some View {
         NavigationStack {
@@ -12,9 +13,9 @@ struct SearchView: View {
                         .textFieldStyle(.roundedBorder)
                         .onSubmit { search.addToHistory(search.query) }
                     Picker("Filter", selection: $search.selectedType) {
-                        Text("All Types").tag(InventoryItem.ItemType?.none)
-                        ForEach(InventoryItem.ItemType.allCases, id: \.self) { type in
-                            Text(type.displayName).tag(Optional(type))
+                        Text("All Types").tag(String?.none)
+                        ForEach(inventory.availableTypes, id: \.self) { type in
+                            Text(type).tag(Optional(type))
                         }
                     }
                     .pickerStyle(.menu)
@@ -44,6 +45,11 @@ struct SearchView: View {
                                 Text("Qty: \(item.quantity) — Minimum \(item.minimum)")
                                     .font(.footnote)
                                     .foregroundStyle(item.isBelowMinimum ? DesignTokens.Colors.warning : .secondary)
+                                if let storeName = locations.storeName(for: item.storeID) {
+                                    Text(storeName)
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
@@ -63,4 +69,5 @@ struct SearchView: View {
     SearchView()
         .environmentObject(environment.search)
         .environmentObject(environment.inventory)
+        .environmentObject(environment.locations)
 }

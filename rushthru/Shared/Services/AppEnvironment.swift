@@ -58,9 +58,9 @@ final class AppEnvironment: ObservableObject {
         let location = LocationNode(parentID: nil, kind: .store, name: "Main Store", path: "Main Store")
         await locations.upsert(location: location)
         locations.selectedStoreID = location.id
-        let bourbon = InventoryItem(name: "Trailhead Bourbon", subName: "Single Barrel", type: .whiskey, sizeML: 750, quantity: 6, minimum: 4, primaryLocationID: location.id, storeID: location.id)
+        let bourbon = InventoryItem(name: "Trailhead Bourbon", subName: "Single Barrel", type: "Whiskey", sizeML: 750, quantity: 6, minimum: 4, primaryLocationID: location.id, storeID: location.id)
         await inventory.create(item: bourbon)
-        let tequila = InventoryItem(name: "Azure Agave", subName: "Reposado", type: .tequila, sizeML: 750, quantity: 3, minimum: 6, primaryLocationID: location.id, storeID: location.id)
+        let tequila = InventoryItem(name: "Azure Agave", subName: "Reposado", type: "Tequila", sizeML: 750, quantity: 3, minimum: 6, primaryLocationID: location.id, storeID: location.id)
         await inventory.create(item: tequila)
         await search.bootstrap()
     }

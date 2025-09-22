@@ -3,6 +3,7 @@ import SwiftUI
 struct CaptureView: View {
     @EnvironmentObject private var capture: CaptureCoordinator
     @EnvironmentObject private var inventory: InventoryService
+    @EnvironmentObject private var locations: LocationCoordinator
     @State private var editableFields = EditableFields()
     @State private var showConfirmation = false
     @State private var confirmationMessage = ""
@@ -107,8 +108,8 @@ struct CaptureView: View {
             TextField("Name", text: $editableFields.name)
             TextField("Sub-name", text: $editableFields.subName)
             Picker("Type", selection: $editableFields.type) {
-                ForEach(InventoryItem.ItemType.allCases, id: \.self) { itemType in
-                    Text(itemType.displayName).tag(itemType)
+                ForEach(inventory.availableTypes, id: \.self) { itemType in
+                    Text(itemType).tag(itemType)
                 }
             }
             TextField("Size (mL)", text: $editableFields.size)
@@ -190,6 +191,11 @@ struct CaptureView: View {
                         }
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                        if let storeName = locations.storeName(for: item.storeID) {
+                            Text(storeName)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
                         Text("Updated \(item.updatedAt, style: .time)")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
@@ -260,11 +266,13 @@ struct CaptureView: View {
             .caseInsensitiveCompare(rhs.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame
     }
 
-    private func normalizedType(from value: String) -> InventoryItem.ItemType? {
-        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return InventoryItem.ItemType.allCases.first { type in
-            type.rawValue == normalized || type.displayName.lowercased() == normalized
+    private func normalizedType(from value: String) -> String? {
+        let normalized = ItemIdentity.normalizeType(value)
+        if let match = inventory.matchingType(for: value) {
+            return match
         }
+        let fallback = inventory.availableTypes.first { ItemIdentity.normalizeType($0) == normalized }
+        return fallback
     }
 
     private func parseSizeValue(from value: String) -> Int? {
@@ -308,7 +316,7 @@ struct CaptureView: View {
 private struct EditableFields {
     var name: String = ""
     var subName: String = ""
-    var type: InventoryItem.ItemType = .other
+    var type: String = InventoryItem.defaultTypes.last ?? "Other"
     var size: String = "750"
     var quantity: Int = 1
     var minimum: Int = 0
@@ -342,6 +350,7 @@ private struct EditableFields {
     CaptureView()
         .environmentObject(environment.capture)
         .environmentObject(environment.inventory)
+        .environmentObject(environment.locations)
 }
 
 #if canImport(UIKit)

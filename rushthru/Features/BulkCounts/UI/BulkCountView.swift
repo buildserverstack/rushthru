@@ -3,11 +3,23 @@ import SwiftUI
 struct BulkCountView: View {
     @EnvironmentObject private var bulkCounts: BulkCountCoordinator
     @EnvironmentObject private var inventory: InventoryService
+    @EnvironmentObject private var locations: LocationCoordinator
+    @State private var searchText: String = ""
+    @State private var selectedType: String? = nil
 
     var body: some View {
         Form {
+            Section("Filter") {
+                TextField("Search by name or variant", text: $searchText)
+                Picker("Type", selection: $selectedType) {
+                    Text("All Types").tag(String?.none)
+                    ForEach(inventory.availableTypes, id: \.self) { type in
+                        Text(type).tag(Optional(type))
+                    }
+                }
+            }
             Section("Inventory") {
-                ForEach(inventory.items) { item in
+                ForEach(filteredItems) { item in
                     HStack {
                         VStack(alignment: .leading) {
                             Text(item.displayName)
@@ -15,6 +27,11 @@ struct BulkCountView: View {
                             Text("Current: \(item.quantity)")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
+                            if let storeName = locations.storeName(for: item.storeID) {
+                                Text(storeName)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         Spacer()
                         Stepper(value: Binding(get: {
@@ -53,6 +70,22 @@ struct BulkCountView: View {
     private func commit() {
         Task { await bulkCounts.commit() }
     }
+
+    private var filteredItems: [InventoryItem] {
+        let tokens = searchText.lowercased().split(separator: " ")
+        var items = inventory.items
+        if let type = selectedType, !type.isEmpty {
+            let normalized = ItemIdentity.normalizeType(type)
+            items = items.filter { ItemIdentity.normalizeType($0.type) == normalized }
+        }
+        if !tokens.isEmpty {
+            items = items.filter { item in
+                let haystack = "\(item.name.lowercased()) \(item.subName.lowercased())"
+                return tokens.allSatisfy { haystack.contains($0) }
+            }
+        }
+        return items.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
 }
 
 #Preview {
@@ -60,4 +93,5 @@ struct BulkCountView: View {
     BulkCountView()
         .environmentObject(environment.bulkCounts)
         .environmentObject(environment.inventory)
+        .environmentObject(environment.locations)
 }

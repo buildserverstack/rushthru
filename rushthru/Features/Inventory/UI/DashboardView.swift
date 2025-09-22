@@ -4,12 +4,16 @@ struct DashboardView: View {
     @EnvironmentObject private var inventory: InventoryService
     @EnvironmentObject private var refill: RefillService
     @EnvironmentObject private var activity: ActivityLogCoordinator
+    @EnvironmentObject private var locations: LocationCoordinator
+    @State private var newTypeName: String = ""
+    @State private var typeStatus: String = ""
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                     summaryCard
+                    typeManagementCard
                     refillCard
                     bulkCountCard
                     activityCard
@@ -24,6 +28,11 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("Inventory Overview")
                 .font(DesignTokens.Typography.subtitle)
+            if let storeName = locations.storeName(for: inventory.selectedStoreID) {
+                Text("Store: \(storeName)")
+                    .font(DesignTokens.Typography.footnote)
+                    .foregroundStyle(.secondary)
+            }
             HStack {
                 VStack(alignment: .leading) {
                     Text("Total Items")
@@ -41,6 +50,31 @@ struct DashboardView: View {
                         .font(.title)
                         .foregroundStyle(refill.refillItems.isEmpty ? Color.primary : DesignTokens.Colors.warning)
                 }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 20).fill(Color(.secondarySystemBackground)))
+    }
+
+    private var typeManagementCard: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Type Filters")
+                .font(DesignTokens.Typography.subtitle)
+            Text("Add a custom type to reuse across capture, search, and counts.")
+                .font(DesignTokens.Typography.footnote)
+                .foregroundStyle(.secondary)
+            TextField("New type name", text: $newTypeName)
+                .textInputAutocapitalization(.words)
+            Button("Add Type") {
+                addType()
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(newTypeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            if !typeStatus.isEmpty {
+                Text(typeStatus)
+                    .font(DesignTokens.Typography.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding()
@@ -66,6 +100,11 @@ struct DashboardView: View {
                         Text("Stock: \(item.quantity) / Minimum: \(item.minimum)")
                             .font(DesignTokens.Typography.footnote)
                             .foregroundStyle(.secondary)
+                        if let storeName = locations.storeName(for: item.storeID) {
+                            Text(storeName)
+                                .font(DesignTokens.Typography.footnote)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     Spacer()
                     Label("Refill", systemImage: "arrow.uturn.down")
@@ -147,6 +186,17 @@ struct DashboardView: View {
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 20).fill(Color(.secondarySystemBackground)))
+    }
+
+    private func addType() {
+        let trimmed = newTypeName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let added = inventory.addCustomType(trimmed)
+        typeStatus = added ? "Added \(trimmed)" : "Type already exists"
+        newTypeName = ""
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            typeStatus = ""
+        }
     }
 }
 

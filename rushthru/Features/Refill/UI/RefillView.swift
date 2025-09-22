@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RefillView: View {
     @EnvironmentObject private var refill: RefillService
+    @EnvironmentObject private var locations: LocationCoordinator
     @State private var selectedItem: InventoryItem?
     @State private var quantityMoved: Int = 1
     @State private var showAddManual = false
@@ -28,6 +29,11 @@ struct RefillView: View {
                                     Text("Current: \(item.quantity) / Minimum: \(item.minimum)")
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
+                                    if let storeName = locations.storeName(for: item.storeID) {
+                                        Text(storeName)
+                                            .font(.footnote)
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
@@ -51,6 +57,11 @@ struct RefillView: View {
                                     Text("Available: \(task.availableQuantity)")
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
+                                    if let storeName = locations.storeName(for: task.storeID) {
+                                        Text(storeName)
+                                            .font(.footnote)
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
                                 Spacer()
                                 Button("Strike") {
@@ -158,4 +169,5 @@ struct RefillView: View {
     let environment = AppEnvironment(preview: true)
     RefillView()
         .environmentObject(environment.refill)
+        .environmentObject(environment.locations)
 }

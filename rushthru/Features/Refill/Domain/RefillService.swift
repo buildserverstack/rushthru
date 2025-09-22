@@ -49,9 +49,8 @@ final class RefillService: ObservableObject {
     func bootstrap() async {}
 
     func strike(itemID: UUID, movedQuantity: Int) async {
-        guard let current = inventoryService.item(id: itemID) else { return }
-        let targetQuantity = max(current.quantity + movedQuantity, current.minimum)
-        await inventoryService.adjustQuantity(itemID: itemID, to: targetQuantity)
+        guard movedQuantity > 0 else { return }
+        await inventoryService.incrementQuantity(itemID: itemID, delta: movedQuantity)
     }
 
     func addManualTask(name: String, quantity: Int) {
@@ -110,7 +109,7 @@ final class RefillService: ObservableObject {
 
         return inventoryService.items
             .filter { item in
-                let haystack = "\(item.name.lowercased()) \(item.subName.lowercased()) \(item.type.rawValue)"
+                let haystack = "\(item.name.lowercased()) \(item.subName.lowercased()) \(item.type.lowercased())"
                 return lowercasedTokens.allSatisfy { haystack.contains($0) }
             }
             .sorted { $0.name < $1.name }

@@ -24,7 +24,7 @@ final class CSVCoordinator: ObservableObject {
     func exportInventory() -> String {
         let header = "id,name,sub_name,type,size,quantity,aisle,row,shelf,bin"
         let rows = inventoryService.items.map { item in
-            "\(item.id.uuidString),\(item.name),\(item.subName),\(item.type.rawValue),\(item.sizeML),\(item.quantity),,,,,"
+            "\(item.id.uuidString),\(item.name),\(item.subName),\(item.type),\(item.sizeML),\(item.quantity),,,,,"
         }
         let csv = ([header] + rows).joined(separator: "\n")
         activityLogger.log(action: .export, entity: .system, entityID: nil, before: nil, after: csv)
@@ -56,13 +56,14 @@ final class CSVCoordinator: ObservableObject {
         let lines = csv.split(separator: "\n").map(String.init)
         guard lines.count > 1 else { return }
         var newItems: [InventoryItem] = []
+        let activeStore = inventoryService.ensureActiveStoreID() ?? locationCoordinator.selectedStoreID ?? UUID()
         for (index, line) in lines.enumerated() where index > 0 {
             let values = line.split(separator: ",").map(String.init)
             if values.count < 6 { continue }
             let identifier = UUID(uuidString: values[0]) ?? UUID()
             let name = values[1]
             let subName = values[2]
-            let type = InventoryItem.ItemType(rawValue: values[3]) ?? .other
+            let type = values[3].isEmpty ? "Other" : values[3]
             let size = Int(values[4]) ?? 0
             let quantity = Int(values[5]) ?? 0
             let item = InventoryItem(
@@ -72,7 +73,7 @@ final class CSVCoordinator: ObservableObject {
                 type: type,
                 sizeML: size,
                 quantity: quantity,
-                storeID: inventoryService.selectedStoreID ?? locationCoordinator.selectedStoreID ?? UUID()
+                storeID: activeStore
             )
             newItems.append(item)
         }

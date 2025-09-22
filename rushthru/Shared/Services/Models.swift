@@ -1,18 +1,24 @@
 import Foundation
 
 struct InventoryItem: Identifiable, Equatable, Hashable, Codable {
-    enum ItemType: String, CaseIterable, Codable, Hashable {
-        case whiskey, tequila, vodka, gin, rum, beer, wine, liqueur, cider, sake, other
-
-        var displayName: String {
-            rawValue.capitalized
-        }
-    }
+    static let defaultTypes: [String] = [
+        "Whiskey",
+        "Tequila",
+        "Vodka",
+        "Gin",
+        "Rum",
+        "Beer",
+        "Wine",
+        "Liqueur",
+        "Cider",
+        "Sake",
+        "Other"
+    ]
 
     var id: UUID
     var name: String
     var subName: String
-    var type: ItemType
+    var type: String
     var sizeML: Int
     var quantity: Int
     var minimum: Int
@@ -27,7 +33,7 @@ struct InventoryItem: Identifiable, Equatable, Hashable, Codable {
         id: UUID = UUID(),
         name: String,
         subName: String = "",
-        type: ItemType,
+        type: String,
         sizeML: Int,
         quantity: Int,
         minimum: Int = 0,
@@ -64,12 +70,12 @@ struct InventoryItem: Identifiable, Equatable, Hashable, Codable {
 
 struct ItemIdentity: Hashable, Codable {
     var normalizedName: String
-    var normalizedType: InventoryItem.ItemType
+    var normalizedType: String
     var normalizedSizeML: Int
 
-    init(name: String, type: InventoryItem.ItemType, sizeML: Int) {
+    init(name: String, type: String, sizeML: Int) {
         self.normalizedName = ItemIdentity.normalize(name)
-        self.normalizedType = type
+        self.normalizedType = ItemIdentity.normalizeType(type)
         self.normalizedSizeML = sizeML
     }
 
@@ -79,6 +85,12 @@ struct ItemIdentity: Hashable, Codable {
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
             .filter { !$0.isEmpty }
             .joined(separator: " ")
+    }
+
+    static func normalizeType(_ type: String) -> String {
+        type.folding(options: .diacriticInsensitive, locale: .current)
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

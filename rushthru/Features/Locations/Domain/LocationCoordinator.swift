@@ -43,6 +43,23 @@ final class LocationCoordinator: ObservableObject {
         return locations.first { $0.id == id }
     }
 
+    func storeName(for id: UUID?) -> String? {
+        location(for: id)?.name
+    }
+
+    @discardableResult
+    func createStore(named name: String) async -> Bool {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        if stores.contains(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) { return false }
+        let node = LocationNode(parentID: nil, kind: .store, name: trimmed, path: trimmed)
+        await upsert(location: node)
+        if selectedStoreID == nil {
+            selectedStoreID = node.id
+        }
+        return true
+    }
+
     var stores: [LocationNode] {
         locations.filter { $0.kind == .store }
     }
