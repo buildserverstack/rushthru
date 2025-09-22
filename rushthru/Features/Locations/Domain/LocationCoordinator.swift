@@ -62,9 +62,6 @@ final class LocationCoordinator: ObservableObject {
         if stores.contains(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) { return false }
         let node = LocationNode(parentID: nil, kind: .store, name: trimmed, path: trimmed)
         await upsert(location: node)
-        if selectedStoreID == nil {
-            selectedStoreID = node.id
-        }
         return true
     }
 

@@ -8,14 +8,15 @@ final class InventoryService: ObservableObject {
     @Published private(set) var selectedStoreID: UUID?
     @Published private(set) var availableTypes: [String] = InventoryItem.defaultTypes
     @Published private(set) var availableSizes: [Int] = InventoryItem.defaultSizes.sorted()
+    @Published private(set) var customTypeOptions: [String] = []
+    @Published private(set) var customSizeOptions: [Int] = []
 
     private let activityLogger: ActivityLogCoordinator
     private let locationCoordinator: LocationCoordinator
     private var cancellables = Set<AnyCancellable>()
     private var storage: [UUID: [InventoryItem]] = [:]
-    private var normalizedTypes: Set<String> = Set(InventoryItem.defaultTypes.map { ItemIdentity.normalizeType($0) })
-    private var customTypes: [String] = []
-    private var customSizes: Set<Int> = []
+    private var customTypeStore: [String] = []
+    private var customSizeSet: Set<Int> = []
 
     init(activityLogger: ActivityLogCoordinator, locationCoordinator: LocationCoordinator) {
         self.activityLogger = activityLogger
@@ -32,7 +33,7 @@ final class InventoryService: ObservableObject {
 
     func bootstrap() async {
         await MainActor.run {
-            let store = locationCoordinator.selectedStoreID ?? locationCoordinator.stores.first?.id
+            let store = locationCoordinator.selectedStoreID
             if selectedStoreID != store {
                 selectedStoreID = store
             }
@@ -145,6 +146,20 @@ final class InventoryService: ObservableObject {
         return registerType(name)
     }
 
+    func removeCustomType(_ name: String) -> (removed: Bool, message: String?) {
+        let normalized = ItemIdentity.normalizeType(name)
+        guard customTypeStore.contains(where: { ItemIdentity.normalizeType($0) == normalized }) else {
+            return (false, "Only custom types can be removed.")
+        }
+        let inUse = storage.values.flatMap { $0 }.contains { ItemIdentity.normalizeType($0.type) == normalized }
+        guard !inUse else {
+            return (false, "Type is still used by inventory items.")
+        }
+        customTypeStore.removeAll { ItemIdentity.normalizeType($0) == normalized }
+        refreshAvailableTypes()
+        return (true, nil)
+    }
+
     func matchingType(for value: String) -> String? {
         let normalized = ItemIdentity.normalizeType(value)
         return availableTypes.first { ItemIdentity.normalizeType($0) == normalized }
@@ -153,12 +168,25 @@ final class InventoryService: ObservableObject {
     @discardableResult
     func addCustomSize(_ value: Int) -> Bool {
         guard value > 0 else { return false }
-        if InventoryItem.defaultSizes.contains(value) || customSizes.contains(value) {
+        if InventoryItem.defaultSizes.contains(value) || customSizeSet.contains(value) {
             return false
         }
-        customSizes.insert(value)
+        customSizeSet.insert(value)
         refreshAvailableSizes()
         return true
+    }
+
+    func removeCustomSize(_ value: Int) -> (removed: Bool, message: String?) {
+        guard customSizeSet.contains(value) else {
+            return (false, "Only custom sizes can be removed.")
+        }
+        let inUse = storage.values.flatMap { $0 }.contains { $0.sizeML == value }
+        guard !inUse else {
+            return (false, "Size is still used by inventory items.")
+        }
+        customSizeSet.remove(value)
+        refreshAvailableSizes()
+        return (true, nil)
     }
 
     func ensureActiveStoreID() -> UUID? {
@@ -166,11 +194,12 @@ final class InventoryService: ObservableObject {
     }
 
     private func reloadItems(for storeID: UUID?) {
-        guard let storeID else {
-            items = []
-            return
+        if let storeID {
+            items = storage[storeID] ?? []
+        } else {
+            let flattened = storage.values.flatMap { $0 }
+            items = flattened.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         }
-        items = storage[storeID] ?? []
         refreshAvailableTypes()
         refreshAvailableSizes()
     }
@@ -201,60 +230,76 @@ final class InventoryService: ObservableObject {
         let trimmed = type.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
         let normalized = ItemIdentity.normalizeType(trimmed)
-        guard !normalizedTypes.contains(normalized) else { return false }
-        normalizedTypes.insert(normalized)
+        if availableTypes.contains(where: { ItemIdentity.normalizeType($0) == normalized }) {
+            return false
+        }
         if !InventoryItem.defaultTypes.contains(where: { ItemIdentity.normalizeType($0) == normalized }) {
-            if !customTypes.contains(where: { ItemIdentity.normalizeType($0) == normalized }) {
-                customTypes.append(trimmed)
+            if !customTypeStore.contains(where: { ItemIdentity.normalizeType($0) == normalized }) {
+                customTypeStore.append(trimmed)
             }
         }
-        availableTypes.append(trimmed)
-        availableTypes.sort { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        refreshAvailableTypes()
         return true
     }
 
     private func refreshAvailableTypes() {
-        normalizedTypes = Set(InventoryItem.defaultTypes.map { ItemIdentity.normalizeType($0) })
-        var combined = InventoryItem.defaultTypes
-        combined.append(contentsOf: customTypes)
-        for typeName in customTypes {
-            normalizedTypes.insert(ItemIdentity.normalizeType(typeName))
-        }
+        customTypeStore = dedupeTypes(customTypeStore.filter { type in
+            let normalized = ItemIdentity.normalizeType(type)
+            return !InventoryItem.defaultTypes.contains { ItemIdentity.normalizeType($0) == normalized }
+        })
+
         let currentItems = storage.values.flatMap { $0 }
         for item in currentItems {
             let trimmed = item.type.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { continue }
             let normalized = ItemIdentity.normalizeType(trimmed)
-            if !normalizedTypes.contains(normalized) {
-                normalizedTypes.insert(normalized)
-                combined.append(trimmed)
+            if !InventoryItem.defaultTypes.contains(where: { ItemIdentity.normalizeType($0) == normalized }) &&
+                !customTypeStore.contains(where: { ItemIdentity.normalizeType($0) == normalized }) {
+                customTypeStore.append(trimmed)
             }
         }
-        combined = Array(Set(combined).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending })
-        customTypes = customTypes.filter { type in
-            let normalized = ItemIdentity.normalizeType(type)
-            return !InventoryItem.defaultTypes.contains(where: { ItemIdentity.normalizeType($0) == normalized })
-        }
+
+        customTypeStore = dedupeTypes(customTypeStore)
+        customTypeStore.sort { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        customTypeOptions = customTypeStore
+
+        var combined = InventoryItem.defaultTypes
+        combined.append(contentsOf: customTypeStore)
+        combined = dedupeTypes(combined)
+        combined.sort { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
         availableTypes = combined
     }
 
     private func refreshAvailableSizes() {
         var sizes = Set(InventoryItem.defaultSizes)
-        sizes.formUnion(customSizes)
+        sizes.formUnion(customSizeSet)
         for storeItems in storage.values {
             for item in storeItems {
                 sizes.insert(item.sizeML)
             }
         }
         availableSizes = sizes.sorted()
+        customSizeOptions = customSizeSet.sorted()
     }
 
     private func registerSize(_ size: Int) {
         guard size > 0 else { return }
         if !InventoryItem.defaultSizes.contains(size) {
-            customSizes.insert(size)
+            customSizeSet.insert(size)
         }
         refreshAvailableSizes()
+    }
+
+    private func dedupeTypes(_ types: [String]) -> [String] {
+        var seen = Set<String>()
+        var result: [String] = []
+        for type in types {
+            let normalized = ItemIdentity.normalizeType(type)
+            if seen.insert(normalized).inserted {
+                result.append(type)
+            }
+        }
+        return result
     }
 
     private func encode(_ item: InventoryItem) -> String? {

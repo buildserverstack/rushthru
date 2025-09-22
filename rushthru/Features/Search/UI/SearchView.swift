@@ -39,6 +39,11 @@ struct SearchView: View {
                                     search.selectSuggestion(entry.query)
                                 }
                             }
+                            Button(role: .destructive) {
+                                search.clearHistory()
+                            } label: {
+                                Text("Clear Recent Searches")
+                            }
                         }
                     }
                 }

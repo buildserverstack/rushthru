@@ -16,13 +16,17 @@ final class SearchCoordinator: ObservableObject {
     }
 
     private let inventoryService: InventoryService
+    private let defaults: UserDefaults
+    private let historyKey = "search.recent"
     private var cancellables = Set<AnyCancellable>()
 
-    init(inventoryService: InventoryService) {
+    init(inventoryService: InventoryService, defaults: UserDefaults = .standard) {
         self.inventoryService = inventoryService
+        self.defaults = defaults
         inventoryService.$items
             .sink { [weak self] _ in self?.performSearch() }
             .store(in: &cancellables)
+        loadHistory()
     }
 
     func bootstrap() async {
@@ -50,17 +54,41 @@ final class SearchCoordinator: ObservableObject {
 
     func selectSuggestion(_ suggestion: String) {
         query = suggestion
+        addToHistory(suggestion)
         performSearch()
     }
 
     func addToHistory(_ query: String) {
         guard !query.isEmpty else { return }
-        if let index = history.firstIndex(where: { $0.query.caseInsensitiveCompare(query) == .orderedSame }) {
-            history[index].lastUsedAt = Date()
+        var updated = history
+        if let index = updated.firstIndex(where: { $0.query.caseInsensitiveCompare(query) == .orderedSame }) {
+            updated[index].lastUsedAt = Date()
         } else {
-            history.insert(SearchHistoryEntry(query: query), at: 0)
+            updated.insert(SearchHistoryEntry(query: query), at: 0)
         }
-        history.sort { $0.lastUsedAt > $1.lastUsedAt }
-        history = Array(history.prefix(10))
+        updated.sort { $0.lastUsedAt > $1.lastUsedAt }
+        updated = Array(updated.prefix(10))
+        history = updated
+        persistHistory()
+    }
+
+    func clearHistory() {
+        history = []
+        persistHistory()
+    }
+
+    private func loadHistory() {
+        guard let data = defaults.data(forKey: historyKey) else { return }
+        let decoder = JSONDecoder()
+        if let saved = try? decoder.decode([SearchHistoryEntry].self, from: data) {
+            history = saved.sorted { $0.lastUsedAt > $1.lastUsedAt }
+        }
+    }
+
+    private func persistHistory() {
+        let encoder = JSONEncoder()
+        if let data = try? encoder.encode(history) {
+            defaults.set(data, forKey: historyKey)
+        }
     }
 }

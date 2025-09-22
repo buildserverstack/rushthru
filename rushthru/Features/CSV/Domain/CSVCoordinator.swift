@@ -49,6 +49,7 @@ final class CSVCoordinator: ObservableObject {
     }
 
     func replaceInventory(with csv: String) async throws {
+        lastImportSummary = nil
         let issues = validate(csv: csv)
         guard issues.isEmpty else { throw CSVError.validationFailed(issues) }
         lastValidationIssues = issues

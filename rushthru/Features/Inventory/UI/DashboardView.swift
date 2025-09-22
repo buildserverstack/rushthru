@@ -35,6 +35,10 @@ struct DashboardView: View {
                 Text("Store: \(storeName)")
                     .font(DesignTokens.Typography.footnote)
                     .foregroundStyle(.secondary)
+            } else if inventory.selectedStoreID == nil {
+                Text("Store: All Stores")
+                    .font(DesignTokens.Typography.footnote)
+                    .foregroundStyle(.secondary)
             }
             HStack {
                 VStack(alignment: .leading) {
@@ -74,6 +78,26 @@ struct DashboardView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(newSizeValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            if !inventory.customSizeOptions.isEmpty {
+                Divider()
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text("Custom Sizes")
+                        .font(DesignTokens.Typography.label)
+                        .foregroundStyle(.secondary)
+                    ForEach(inventory.customSizeOptions, id: \.self) { size in
+                        HStack {
+                            Text("\(size) mL")
+                            Spacer()
+                            Button(role: .destructive) {
+                                removeSize(size)
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                }
+            }
             if !sizeStatus.isEmpty {
                 Text(sizeStatus)
                     .font(DesignTokens.Typography.footnote)
@@ -99,6 +123,26 @@ struct DashboardView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(newTypeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            if !inventory.customTypeOptions.isEmpty {
+                Divider()
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text("Custom Types")
+                        .font(DesignTokens.Typography.label)
+                        .foregroundStyle(.secondary)
+                    ForEach(inventory.customTypeOptions, id: \.self) { type in
+                        HStack {
+                            Text(type)
+                            Spacer()
+                            Button(role: .destructive) {
+                                removeType(type)
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                }
+            }
             if !typeStatus.isEmpty {
                 Text(typeStatus)
                     .font(DesignTokens.Typography.footnote)
@@ -237,6 +281,22 @@ struct DashboardView: View {
         let added = inventory.addCustomSize(value)
         sizeStatus = added ? "Added \(value) mL" : "Size already exists"
         newSizeValue = ""
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            sizeStatus = ""
+        }
+    }
+
+    private func removeType(_ type: String) {
+        let outcome = inventory.removeCustomType(type)
+        typeStatus = outcome.removed ? "Removed type \(type)" : (outcome.message ?? "Unable to remove type")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            typeStatus = ""
+        }
+    }
+
+    private func removeSize(_ size: Int) {
+        let outcome = inventory.removeCustomSize(size)
+        sizeStatus = outcome.removed ? "Removed size \(size) mL" : (outcome.message ?? "Unable to remove size")
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             sizeStatus = ""
         }
