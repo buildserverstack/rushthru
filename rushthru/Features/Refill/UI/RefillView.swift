@@ -41,6 +41,11 @@ struct RefillView: View {
                                     Text("Needed: \(suggestion.suggestedQuantity)  •  On shelf: \(suggestion.availableQuantity)")
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
+                                    if suggestion.isCapacityBased {
+                                        Text("Space detected for \(suggestion.suggestedQuantity) bottle\(suggestion.suggestedQuantity == 1 ? "" : "s")")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
                                     if suggestion.confidence > 0 {
                                         Text("Confidence \(Int((suggestion.confidence * 100).rounded()))%")
                                             .font(.caption)

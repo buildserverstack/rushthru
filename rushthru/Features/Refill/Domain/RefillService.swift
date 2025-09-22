@@ -123,20 +123,47 @@ final class RefillService: ObservableObject {
         do {
             let inventorySnapshot = inventoryService.items.map(ShelfInventorySnapshot.init(item:))
             let candidates = try await shelfRecognizer.analyzeShelf(imageData: data, inventory: inventorySnapshot)
-            let mapped = candidates.map { candidate -> ShelfSuggestion in
+            let mapped = candidates.compactMap { candidate -> ShelfSuggestion? in
                 let linkedItem = candidate.itemID.flatMap { id in
                     inventoryService.items.first(where: { $0.id == id })
                 } ?? inventoryService.items.first { item in
                     item.displayName.caseInsensitiveCompare(candidate.name) == .orderedSame
                 }
+
                 let available = linkedItem?.quantity ?? candidate.availableQuantity
-                let quantity = max(1, candidate.suggestedQuantity)
+                let minimum = linkedItem?.minimum ?? max(0, candidate.availableQuantity)
+                let deficit = max(0, minimum - available)
+
+                var suggestedQuantity = max(0, candidate.suggestedQuantity)
+                var isCapacityBased = false
+
+                if let linkedItem {
+                    if suggestedQuantity > 0 {
+                        if deficit > 0 {
+                            suggestedQuantity = max(suggestedQuantity, max(1, deficit))
+                        } else {
+                            isCapacityBased = true
+                        }
+                    } else if deficit > 0 {
+                        suggestedQuantity = max(1, deficit)
+                    }
+                } else {
+                    if suggestedQuantity <= 0 {
+                        suggestedQuantity = 0
+                    }
+                }
+
+                if suggestedQuantity <= 0 {
+                    return nil
+                }
+
                 return ShelfSuggestion(
                     itemID: linkedItem?.id ?? candidate.itemID,
                     displayName: linkedItem?.displayName ?? candidate.name,
-                    suggestedQuantity: quantity,
+                    suggestedQuantity: suggestedQuantity,
                     availableQuantity: available,
-                    confidence: candidate.confidence
+                    confidence: candidate.confidence,
+                    isCapacityBased: isCapacityBased
                 )
             }
             shelfSuggestions = mapped
@@ -190,14 +217,18 @@ final class RefillService: ObservableObject {
         var updatedSuggestions: [ShelfSuggestion] = []
         for suggestion in shelfSuggestions {
             if let itemID = suggestion.itemID, let item = itemMap[itemID] {
-                if item.minimum <= item.quantity {
-                    continue
-                }
                 var updated = suggestion
                 updated.displayName = item.displayName
                 updated.availableQuantity = item.quantity
-                updated.suggestedQuantity = max(1, item.minimum - item.quantity)
-                updatedSuggestions.append(updated)
+                let deficit = max(0, item.minimum - item.quantity)
+                if deficit > 0 {
+                    updated.suggestedQuantity = max(updated.suggestedQuantity, max(1, deficit))
+                    updated.isCapacityBased = false
+                    updatedSuggestions.append(updated)
+                } else if suggestion.isCapacityBased {
+                    updated.suggestedQuantity = max(1, updated.suggestedQuantity)
+                    updatedSuggestions.append(updated)
+                }
             } else {
                 updatedSuggestions.append(suggestion)
             }
@@ -213,14 +244,24 @@ struct ShelfSuggestion: Identifiable, Equatable {
     var suggestedQuantity: Int
     var availableQuantity: Int
     var confidence: Double
+    var isCapacityBased: Bool
 
-    init(id: UUID = UUID(), itemID: UUID?, displayName: String, suggestedQuantity: Int, availableQuantity: Int, confidence: Double) {
+    init(
+        id: UUID = UUID(),
+        itemID: UUID?,
+        displayName: String,
+        suggestedQuantity: Int,
+        availableQuantity: Int,
+        confidence: Double,
+        isCapacityBased: Bool = false
+    ) {
         self.id = id
         self.itemID = itemID
         self.displayName = displayName
         self.suggestedQuantity = suggestedQuantity
         self.availableQuantity = availableQuantity
         self.confidence = confidence
+        self.isCapacityBased = isCapacityBased
     }
 }
 
