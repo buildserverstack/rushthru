@@ -283,7 +283,7 @@ struct DashboardView: View {
             HapticsManager.shared.playWarning()
         }
         newTypeName = ""
-        animateStatusClear(&typeStatus)
+        animateStatusClear($typeStatus)
     }
 
     private func addSize() {
@@ -302,7 +302,7 @@ struct DashboardView: View {
             HapticsManager.shared.playWarning()
         }
         newSizeValue = ""
-        animateStatusClear(&sizeStatus)
+        animateStatusClear($sizeStatus)
     }
 
     private func removeType(_ type: String) {
@@ -311,7 +311,7 @@ struct DashboardView: View {
         if outcome.removed {
             HapticsManager.shared.playWarning()
         }
-        animateStatusClear(&typeStatus)
+        animateStatusClear($typeStatus)
     }
 
     private func removeSize(_ size: Int) {
@@ -320,15 +320,15 @@ struct DashboardView: View {
         if outcome.removed {
             HapticsManager.shared.playWarning()
         }
-        animateStatusClear(&sizeStatus)
+        animateStatusClear($sizeStatus)
     }
 
-    private func animateStatusClear(_ status: inout String) {
-        let currentMessage = status
+    private func animateStatusClear(_ status: Binding<String>) {
+        let currentMessage = status.wrappedValue
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            if status == currentMessage {
+            if status.wrappedValue == currentMessage {
                 withAnimation(.easeInOut(duration: DesignTokens.Motion.standard)) {
-                    status = ""
+                    status.wrappedValue = ""
                 }
             }
         }
