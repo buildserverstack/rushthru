@@ -22,9 +22,9 @@ final class CSVCoordinator: ObservableObject {
     func bootstrap() async {}
 
     func exportInventory() -> String {
-        let header = "id,name,sub_name,type,size,quantity,aisle,row,shelf,bin"
+        let header = "id,name,sub_name,type,size,quantity,aisle,shelf,row,column"
         let rows = inventoryService.items.map { item in
-            "\(item.id.uuidString),\(item.name),\(item.subName),\(item.type),\(item.sizeML),\(item.quantity),,,,,"
+            "\(item.id.uuidString),\(item.name),\(item.subName),\(item.type),\(item.sizeML),\(item.quantity),\(item.aisle),\(item.shelf),\(item.row),\(item.column)"
         }
         let csv = ([header] + rows).joined(separator: "\n")
         activityLogger.log(action: .export, entity: .system, entityID: nil, before: nil, after: csv)
@@ -59,13 +59,17 @@ final class CSVCoordinator: ObservableObject {
         let activeStore = inventoryService.ensureActiveStoreID() ?? locationCoordinator.selectedStoreID ?? UUID()
         for (index, line) in lines.enumerated() where index > 0 {
             let values = line.split(separator: ",").map(String.init)
-            if values.count < 6 { continue }
+            guard values.count >= 6 else { continue }
             let identifier = UUID(uuidString: values[0]) ?? UUID()
             let name = values[1]
             let subName = values[2]
             let type = values[3].isEmpty ? "Other" : values[3]
             let size = Int(values[4]) ?? 0
             let quantity = Int(values[5]) ?? 0
+            let aisle = values.indices.contains(6) ? values[6] : ""
+            let shelf = values.indices.contains(7) ? values[7] : ""
+            let row = values.indices.contains(8) ? values[8] : ""
+            let column = values.indices.contains(9) ? values[9] : ""
             let item = InventoryItem(
                 id: identifier,
                 name: name,
@@ -73,7 +77,11 @@ final class CSVCoordinator: ObservableObject {
                 type: type,
                 sizeML: size,
                 quantity: quantity,
-                storeID: activeStore
+                storeID: activeStore,
+                aisle: aisle,
+                shelf: shelf,
+                row: row,
+                column: column
             )
             newItems.append(item)
         }

@@ -87,7 +87,11 @@ final class CaptureCoordinator: ObservableObject {
             quantity: fields.initialQuantity,
             minimum: fields.minimum,
             primaryLocationID: nil,
-            storeID: storeID
+            storeID: storeID,
+            aisle: fields.aisle,
+            shelf: fields.shelf,
+            row: fields.row,
+            column: fields.column
         )
         await inventoryService.create(item: newItem)
         resetDraft()
@@ -200,16 +204,24 @@ struct NormalizedFields: Equatable {
     var sizeML: Int
     var minimum: Int
     var initialQuantity: Int
+    var aisle: String
+    var shelf: String
+    var row: String
+    var column: String
 
-    static let `default` = NormalizedFields(name: "", subName: "", type: InventoryItem.defaultTypes.last ?? "Other", sizeML: 750, minimum: 0, initialQuantity: 1)
+    static let `default` = NormalizedFields(name: "", subName: "", type: InventoryItem.defaultTypes.last ?? "Other", sizeML: InventoryItem.defaultSizes.first ?? 750, minimum: 0, initialQuantity: 1)
 
-    init(name: String, subName: String, type: String, sizeML: Int, minimum: Int, initialQuantity: Int) {
+    init(name: String, subName: String, type: String, sizeML: Int, minimum: Int, initialQuantity: Int, aisle: String = "", shelf: String = "", row: String = "", column: String = "") {
         self.name = name
         self.subName = subName
         self.type = type
         self.sizeML = sizeML
         self.minimum = minimum
         self.initialQuantity = initialQuantity
+        self.aisle = aisle
+        self.shelf = shelf
+        self.row = row
+        self.column = column
     }
 
     var identity: ItemIdentity {

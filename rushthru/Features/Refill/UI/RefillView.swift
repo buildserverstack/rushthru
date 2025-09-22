@@ -34,6 +34,11 @@ struct RefillView: View {
                                             .font(.footnote)
                                             .foregroundStyle(.secondary)
                                     }
+                                    if !item.locationDescription.isEmpty {
+                                        Text(item.locationDescription)
+                                            .font(.footnote)
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }

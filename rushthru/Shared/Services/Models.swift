@@ -15,6 +15,8 @@ struct InventoryItem: Identifiable, Equatable, Hashable, Codable {
         "Other"
     ]
 
+    static let defaultSizes: [Int] = [750, 1000, 1750]
+
     var id: UUID
     var name: String
     var subName: String
@@ -24,6 +26,10 @@ struct InventoryItem: Identifiable, Equatable, Hashable, Codable {
     var minimum: Int
     var primaryLocationID: UUID?
     var storeID: UUID
+    var aisle: String
+    var shelf: String
+    var row: String
+    var column: String
     var createdAt: Date
     var updatedAt: Date
 
@@ -39,6 +45,10 @@ struct InventoryItem: Identifiable, Equatable, Hashable, Codable {
         minimum: Int = 0,
         primaryLocationID: UUID? = nil,
         storeID: UUID,
+        aisle: String = "",
+        shelf: String = "",
+        row: String = "",
+        column: String = "",
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -51,6 +61,10 @@ struct InventoryItem: Identifiable, Equatable, Hashable, Codable {
         self.minimum = minimum
         self.primaryLocationID = primaryLocationID
         self.storeID = storeID
+        self.aisle = aisle
+        self.shelf = shelf
+        self.row = row
+        self.column = column
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -65,6 +79,13 @@ struct InventoryItem: Identifiable, Equatable, Hashable, Codable {
 
     var normalizedIdentity: ItemIdentity {
         ItemIdentity(name: name, type: type, sizeML: sizeML)
+    }
+
+    var locationDescription: String {
+        let parts = [aisle, shelf, row, column]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return parts.joined(separator: " • ")
     }
 }
 

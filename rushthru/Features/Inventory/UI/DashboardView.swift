@@ -7,6 +7,8 @@ struct DashboardView: View {
     @EnvironmentObject private var locations: LocationCoordinator
     @State private var newTypeName: String = ""
     @State private var typeStatus: String = ""
+    @State private var newSizeValue: String = ""
+    @State private var sizeStatus: String = ""
 
     var body: some View {
         NavigationStack {
@@ -14,6 +16,7 @@ struct DashboardView: View {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                     summaryCard
                     typeManagementCard
+                    sizeManagementCard
                     refillCard
                     bulkCountCard
                     activityCard
@@ -50,6 +53,31 @@ struct DashboardView: View {
                         .font(.title)
                         .foregroundStyle(refill.refillItems.isEmpty ? Color.primary : DesignTokens.Colors.warning)
                 }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 20).fill(Color(.secondarySystemBackground)))
+    }
+
+    private var sizeManagementCard: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Size Filters")
+                .font(DesignTokens.Typography.subtitle)
+            Text("Add a bottle size to surface it in capture and search drop-downs.")
+                .font(DesignTokens.Typography.footnote)
+                .foregroundStyle(.secondary)
+            TextField("New size (e.g. 1500 or 1500ml)", text: $newSizeValue)
+                .keyboardType(.numberPad)
+            Button("Add Size") {
+                addSize()
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(newSizeValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            if !sizeStatus.isEmpty {
+                Text(sizeStatus)
+                    .font(DesignTokens.Typography.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding()
@@ -196,6 +224,21 @@ struct DashboardView: View {
         newTypeName = ""
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             typeStatus = ""
+        }
+    }
+
+    private func addSize() {
+        let trimmed = newSizeValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let digits = trimmed.filter { $0.isNumber }
+        guard let value = Int(digits), value > 0 else {
+            sizeStatus = "Enter a valid size in milliliters."
+            return
+        }
+        let added = inventory.addCustomSize(value)
+        sizeStatus = added ? "Added \(value) mL" : "Size already exists"
+        newSizeValue = ""
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            sizeStatus = ""
         }
     }
 }

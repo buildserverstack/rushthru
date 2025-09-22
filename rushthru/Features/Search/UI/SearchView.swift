@@ -19,6 +19,13 @@ struct SearchView: View {
                         }
                     }
                     .pickerStyle(.menu)
+                    Picker("Size", selection: $search.selectedSize) {
+                        Text("All Sizes").tag(Int?.none)
+                        ForEach(inventory.availableSizes.sorted(), id: \.self) { size in
+                            Text("\(size) mL").tag(Optional(size))
+                        }
+                    }
+                    .pickerStyle(.menu)
                 }
 
                 if search.query.isEmpty {
@@ -47,6 +54,11 @@ struct SearchView: View {
                                     .foregroundStyle(item.isBelowMinimum ? DesignTokens.Colors.warning : .secondary)
                                 if let storeName = locations.storeName(for: item.storeID) {
                                     Text(storeName)
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                }
+                                if !item.locationDescription.isEmpty {
+                                    Text(item.locationDescription)
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
                                 }

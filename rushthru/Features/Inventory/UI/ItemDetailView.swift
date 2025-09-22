@@ -12,6 +12,10 @@ struct ItemDetailView: View {
     @State private var sizeML: Int
     @State private var quantity: Int
     @State private var minimum: Int
+    @State private var aisle: String
+    @State private var shelf: String
+    @State private var row: String
+    @State private var column: String
 
     init(item: InventoryItem) {
         self.itemID = item.id
@@ -22,6 +26,10 @@ struct ItemDetailView: View {
         _sizeML = State(initialValue: item.sizeML)
         _quantity = State(initialValue: item.quantity)
         _minimum = State(initialValue: item.minimum)
+        _aisle = State(initialValue: item.aisle)
+        _shelf = State(initialValue: item.shelf)
+        _row = State(initialValue: item.row)
+        _column = State(initialValue: item.column)
     }
 
     var body: some View {
@@ -45,6 +53,37 @@ struct ItemDetailView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+            }
+
+            Section("Location") {
+                Picker("Aisle", selection: $aisle) {
+                    Text("None").tag("")
+                    ForEach(locations.aisleOptions, id: \.self) { option in
+                        Text(option).tag(option)
+                    }
+                }
+                .pickerStyle(.menu)
+                Picker("Shelf", selection: $shelf) {
+                    Text("None").tag("")
+                    ForEach(locations.shelfOptions, id: \.self) { option in
+                        Text(option).tag(option)
+                    }
+                }
+                .pickerStyle(.menu)
+                Picker("Row", selection: $row) {
+                    Text("None").tag("")
+                    ForEach(locations.rowOptions, id: \.self) { option in
+                        Text(option).tag(option)
+                    }
+                }
+                .pickerStyle(.menu)
+                Picker("Column", selection: $column) {
+                    Text("None").tag("")
+                    ForEach(locations.columnOptions, id: \.self) { option in
+                        Text(option).tag(option)
+                    }
+                }
+                .pickerStyle(.menu)
             }
 
             Section("Inventory") {
@@ -93,6 +132,10 @@ struct ItemDetailView: View {
         sizeML = item.sizeML
         quantity = item.quantity
         minimum = item.minimum
+        aisle = item.aisle
+        shelf = item.shelf
+        row = item.row
+        column = item.column
     }
 
     private func isDirty(comparedTo item: InventoryItem) -> Bool {
@@ -103,7 +146,11 @@ struct ItemDetailView: View {
             type != item.type ||
             sizeML != item.sizeML ||
             quantity != item.quantity ||
-            minimum != item.minimum
+            minimum != item.minimum ||
+            aisle != item.aisle ||
+            shelf != item.shelf ||
+            row != item.row ||
+            column != item.column
     }
 
     private func save() {
@@ -114,6 +161,10 @@ struct ItemDetailView: View {
         updated.sizeML = sizeML
         updated.quantity = quantity
         updated.minimum = minimum
+        updated.aisle = aisle
+        updated.shelf = shelf
+        updated.row = row
+        updated.column = column
         Task {
             await inventory.update(item: updated)
             latestItem = updated

@@ -7,6 +7,7 @@ final class InventoryService: ObservableObject {
     @Published private(set) var lastUpdated: Date = Date()
     @Published private(set) var selectedStoreID: UUID?
     @Published private(set) var availableTypes: [String] = InventoryItem.defaultTypes
+    @Published private(set) var availableSizes: [Int] = InventoryItem.defaultSizes.sorted()
 
     private let activityLogger: ActivityLogCoordinator
     private let locationCoordinator: LocationCoordinator
@@ -14,6 +15,7 @@ final class InventoryService: ObservableObject {
     private var storage: [UUID: [InventoryItem]] = [:]
     private var normalizedTypes: Set<String> = Set(InventoryItem.defaultTypes.map { ItemIdentity.normalizeType($0) })
     private var customTypes: [String] = []
+    private var customSizes: Set<Int> = []
 
     init(activityLogger: ActivityLogCoordinator, locationCoordinator: LocationCoordinator) {
         self.activityLogger = activityLogger
@@ -35,6 +37,7 @@ final class InventoryService: ObservableObject {
                 selectedStoreID = store
             }
             reloadItems(for: store)
+            refreshAvailableSizes()
         }
     }
 
@@ -54,6 +57,7 @@ final class InventoryService: ObservableObject {
         }
         lastUpdated = Date()
         activityLogger.log(action: .create, entity: .item, entityID: storedItem.id, before: nil, after: encode(storedItem))
+        registerSize(storedItem.sizeML)
     }
 
     func existingItem(matching identity: ItemIdentity) -> InventoryItem? {
@@ -73,6 +77,7 @@ final class InventoryService: ObservableObject {
             items = reassigned
         }
         refreshAvailableTypes()
+        refreshAvailableSizes()
         lastUpdated = Date()
         activityLogger.log(action: .import, entity: .batch, entityID: nil, before: nil, after: "Replaced with \(reassigned.count) items")
     }
@@ -90,6 +95,7 @@ final class InventoryService: ObservableObject {
             items[currentIndex] = updated
         }
         _ = registerType(updated.type)
+        registerSize(updated.sizeML)
         lastUpdated = Date()
         activityLogger.log(action: .edit, entity: .item, entityID: updated.id, before: encode(before), after: encode(updated))
     }
@@ -144,6 +150,17 @@ final class InventoryService: ObservableObject {
         return availableTypes.first { ItemIdentity.normalizeType($0) == normalized }
     }
 
+    @discardableResult
+    func addCustomSize(_ value: Int) -> Bool {
+        guard value > 0 else { return false }
+        if InventoryItem.defaultSizes.contains(value) || customSizes.contains(value) {
+            return false
+        }
+        customSizes.insert(value)
+        refreshAvailableSizes()
+        return true
+    }
+
     func ensureActiveStoreID() -> UUID? {
         ensureStoreID()
     }
@@ -155,6 +172,7 @@ final class InventoryService: ObservableObject {
         }
         items = storage[storeID] ?? []
         refreshAvailableTypes()
+        refreshAvailableSizes()
     }
 
     private func ensureStoreID() -> UUID? {
@@ -218,6 +236,25 @@ final class InventoryService: ObservableObject {
             return !InventoryItem.defaultTypes.contains(where: { ItemIdentity.normalizeType($0) == normalized })
         }
         availableTypes = combined
+    }
+
+    private func refreshAvailableSizes() {
+        var sizes = Set(InventoryItem.defaultSizes)
+        sizes.formUnion(customSizes)
+        for storeItems in storage.values {
+            for item in storeItems {
+                sizes.insert(item.sizeML)
+            }
+        }
+        availableSizes = sizes.sorted()
+    }
+
+    private func registerSize(_ size: Int) {
+        guard size > 0 else { return }
+        if !InventoryItem.defaultSizes.contains(size) {
+            customSizes.insert(size)
+        }
+        refreshAvailableSizes()
     }
 
     private func encode(_ item: InventoryItem) -> String? {

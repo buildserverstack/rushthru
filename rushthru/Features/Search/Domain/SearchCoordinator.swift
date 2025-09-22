@@ -11,6 +11,9 @@ final class SearchCoordinator: ObservableObject {
     @Published var selectedType: String? {
         didSet { performSearch() }
     }
+    @Published var selectedSize: Int? {
+        didSet { performSearch() }
+    }
 
     private let inventoryService: InventoryService
     private var cancellables = Set<AnyCancellable>()
@@ -33,9 +36,12 @@ final class SearchCoordinator: ObservableObject {
             let normalized = ItemIdentity.normalizeType(type)
             items = items.filter { ItemIdentity.normalizeType($0.type) == normalized }
         }
+        if let size = selectedSize {
+            items = items.filter { $0.sizeML == size }
+        }
         if !tokens.isEmpty {
             items = items.filter { item in
-                let haystack = "\(item.name.lowercased()) \(item.subName.lowercased()) \(item.type.lowercased()) \(item.sizeML)"
+                let haystack = "\(item.name.lowercased()) \(item.subName.lowercased()) \(item.type.lowercased()) \(item.sizeML) \(item.aisle.lowercased()) \(item.shelf.lowercased()) \(item.row.lowercased()) \(item.column.lowercased())"
                 return tokens.allSatisfy { haystack.contains($0) }
             }
         }

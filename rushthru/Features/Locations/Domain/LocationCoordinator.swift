@@ -5,9 +5,17 @@ final class LocationCoordinator: ObservableObject {
     @Published private(set) var locations: [LocationNode] = []
     @Published var selectedStoreID: UUID?
     private let activityLogger: ActivityLogCoordinator
+    let aisleOptions: [String]
+    let shelfOptions: [String]
+    let rowOptions: [String]
+    let columnOptions: [String]
 
     init(activityLogger: ActivityLogCoordinator) {
         self.activityLogger = activityLogger
+        self.aisleOptions = (1...12).map { "Aisle \($0)" }
+        self.shelfOptions = (1...10).map { "Shelf \($0)" }
+        self.rowOptions = (1...10).map { "Row \($0)" }
+        self.columnOptions = (1...10).map { "Column \($0)" }
     }
 
     func bootstrap() async {

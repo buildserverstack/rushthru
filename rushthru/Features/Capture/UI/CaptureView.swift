@@ -112,10 +112,43 @@ struct CaptureView: View {
                     Text(itemType).tag(itemType)
                 }
             }
-            TextField("Size (mL)", text: $editableFields.size)
-                .keyboardType(.numberPad)
+            .pickerStyle(.menu)
+            Picker("Size", selection: $editableFields.size) {
+                ForEach(sizeOptions, id: \.self) { size in
+                    Text("\(size) mL").tag(size)
+                }
+            }
+            .pickerStyle(.menu)
             Stepper("Quantity: \(editableFields.quantity)", value: $editableFields.quantity, in: 1...500)
             Stepper("Minimum: \(editableFields.minimum)", value: $editableFields.minimum, in: 0...200)
+            Picker("Aisle", selection: $editableFields.aisle) {
+                Text("None").tag("")
+                ForEach(locations.aisleOptions, id: \.self) { option in
+                    Text(option).tag(option)
+                }
+            }
+            .pickerStyle(.menu)
+            Picker("Shelf", selection: $editableFields.shelf) {
+                Text("None").tag("")
+                ForEach(locations.shelfOptions, id: \.self) { option in
+                    Text(option).tag(option)
+                }
+            }
+            .pickerStyle(.menu)
+            Picker("Row", selection: $editableFields.row) {
+                Text("None").tag("")
+                ForEach(locations.rowOptions, id: \.self) { option in
+                    Text(option).tag(option)
+                }
+            }
+            .pickerStyle(.menu)
+            Picker("Column", selection: $editableFields.column) {
+                Text("None").tag("")
+                ForEach(locations.columnOptions, id: \.self) { option in
+                    Text(option).tag(option)
+                }
+            }
+            .pickerStyle(.menu)
         }
     }
 
@@ -138,7 +171,7 @@ struct CaptureView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                ForEach(OCRCandidateField.FieldType.allCases, id: \.self) { fieldType in
+                ForEach(suggestionFieldTypes, id: \.self) { fieldType in
                     let options = options(for: fieldType)
                     if !options.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
@@ -196,6 +229,11 @@ struct CaptureView: View {
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                         }
+                        if !item.locationDescription.isEmpty {
+                            Text(item.locationDescription)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
                         Text("Updated \(item.updatedAt, style: .time)")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
@@ -210,6 +248,15 @@ struct CaptureView: View {
         inventory.items.sorted { $0.updatedAt > $1.updatedAt }
     }
 
+    private var sizeOptions: [Int] {
+        var options = Set(inventory.availableSizes)
+        options.insert(editableFields.size)
+        if options.isEmpty {
+            options.insert(InventoryItem.defaultSizes.first ?? 750)
+        }
+        return options.sorted()
+    }
+
     private func label(for type: OCRCandidateField.FieldType) -> String {
         switch type {
         case .name:
@@ -221,6 +268,10 @@ struct CaptureView: View {
         case .sizeML:
             return "Size"
         }
+    }
+
+    private var suggestionFieldTypes: [OCRCandidateField.FieldType] {
+        [.name, .subName]
     }
 
     private func options(for fieldType: OCRCandidateField.FieldType) -> [OCRCandidateField] {
@@ -241,7 +292,7 @@ struct CaptureView: View {
             }
         case .sizeML:
             if let size = parseSizeValue(from: candidate.value) {
-                editableFields.size = String(size)
+                editableFields.size = size
             }
         }
     }
@@ -256,8 +307,8 @@ struct CaptureView: View {
             guard let matchedType = normalizedType(from: candidate.value) else { return false }
             return editableFields.type == matchedType
         case .sizeML:
-            guard let size = parseSizeValue(from: candidate.value), let currentSize = Int(editableFields.size) else { return false }
-            return size == currentSize
+            guard let size = parseSizeValue(from: candidate.value) else { return false }
+            return size == editableFields.size
         }
     }
 
@@ -317,30 +368,42 @@ private struct EditableFields {
     var name: String = ""
     var subName: String = ""
     var type: String = InventoryItem.defaultTypes.last ?? "Other"
-    var size: String = "750"
+    var size: Int = InventoryItem.defaultSizes.first ?? 750
     var quantity: Int = 1
     var minimum: Int = 0
+    var aisle: String = ""
+    var shelf: String = ""
+    var row: String = ""
+    var column: String = ""
 
     init(from normalized: NormalizedFields? = nil) {
         if let normalized {
             name = normalized.name
             subName = normalized.subName
             type = normalized.type
-            size = String(normalized.sizeML)
+            size = normalized.sizeML
             quantity = max(1, normalized.initialQuantity)
             minimum = normalized.minimum
+            aisle = normalized.aisle
+            shelf = normalized.shelf
+            row = normalized.row
+            column = normalized.column
         }
     }
 
     var normalizedFields: NormalizedFields? {
-        guard let sizeValue = Int(size) else { return nil }
+        guard size > 0 else { return nil }
         return NormalizedFields(
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             subName: subName.trimmingCharacters(in: .whitespacesAndNewlines),
             type: type,
-            sizeML: sizeValue,
+            sizeML: size,
             minimum: minimum,
-            initialQuantity: quantity
+            initialQuantity: quantity,
+            aisle: aisle,
+            shelf: shelf,
+            row: row,
+            column: column
         )
     }
 }
