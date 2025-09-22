@@ -109,7 +109,7 @@ struct SkeletonView: View {
                 .mask(
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .fill(Color.white)
-                        .phaseAnimator(phase)
+                        .phaseOffset(phase)
                 )
             )
             .onAppear {
@@ -124,7 +124,7 @@ struct SkeletonView: View {
 }
 
 private extension Shape {
-    func phaseAnimator(_ phase: CGFloat) -> some View {
+    func phaseOffset(_ phase: CGFloat) -> some View {
         self
             .offset(x: phase * 120)
     }
