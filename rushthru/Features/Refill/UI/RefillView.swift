@@ -182,7 +182,7 @@ struct RefillView: View {
     }
 
     @ViewBuilder
-    private func suggestionCapacityText(for suggestion: RefillShelfSuggestion) -> some View {
+    private func suggestionCapacityText(for suggestion: ShelfSuggestion) -> some View {
         if suggestion.isCapacityBased {
             Text("Space detected for \(suggestion.suggestedQuantity) bottle\(suggestion.suggestedQuantity == 1 ? "" : "s")")
                 .font(.caption)
@@ -191,7 +191,7 @@ struct RefillView: View {
     }
 
     @ViewBuilder
-    private func suggestionConfidenceText(for suggestion: RefillShelfSuggestion) -> some View {
+    private func suggestionConfidenceText(for suggestion: ShelfSuggestion) -> some View {
         if suggestion.confidence > 0 {
             Text("Confidence \(Int((suggestion.confidence * 100).rounded()))%")
                 .font(.caption)
