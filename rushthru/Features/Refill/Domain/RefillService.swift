@@ -50,7 +50,7 @@ final class RefillService: ObservableObject {
 
     func strike(itemID: UUID, movedQuantity: Int) async {
         guard movedQuantity > 0 else { return }
-        await inventoryService.incrementQuantity(itemID: itemID, delta: movedQuantity)
+        await inventoryService.incrementQuantity(itemID: itemID, delta: -movedQuantity)
     }
 
     func addManualTask(name: String, quantity: Int) {
@@ -81,7 +81,7 @@ final class RefillService: ObservableObject {
         guard let task = manualTasks.first(where: { $0.id == taskID }) else { return }
         if let linked = task.linkedItemID {
             Task { [inventoryService] in
-                await inventoryService.incrementQuantity(itemID: linked, delta: task.quantity)
+                await inventoryService.incrementQuantity(itemID: linked, delta: -task.quantity)
             }
         }
         manualTasks.removeAll { $0.id == taskID }
