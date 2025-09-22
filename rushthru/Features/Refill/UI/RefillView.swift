@@ -17,131 +17,9 @@ struct RefillView: View {
     var body: some View {
         NavigationStack {
             List {
-                if refill.isScanningShelf || !refill.shelfSuggestions.isEmpty || refill.shelfScanError != nil {
-                    Section("Shelf scan suggestions") {
-                        if refill.isScanningShelf {
-                            HStack(spacing: 12) {
-                                ProgressView()
-                                Text("Analyzing shelf…")
-                            }
-                        }
-                        if let message = refill.shelfScanError {
-                            Text(message)
-                                .font(.footnote)
-                                .foregroundStyle(.red)
-                                .transition(.opacity)
-                        }
-                        ForEach(refill.shelfSuggestions) { suggestion in
-                            Button {
-                                withAnimation(DesignTokens.Motion.spring()) {
-                                    refill.applyShelfSuggestion(suggestion)
-                                }
-                                HapticsManager.shared.playSuccess()
-                            } label: {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(suggestion.displayName)
-                                        .font(.headline)
-                                        .foregroundStyle(.primary)
-                                    Text("Needed: \(suggestion.suggestedQuantity)  •  On shelf: \(suggestion.availableQuantity)")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                    if suggestion.isCapacityBased {
-                                        Text("Space detected for \(suggestion.suggestedQuantity) bottle\(suggestion.suggestedQuantity == 1 ? "" : "s")")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    if suggestion.confidence > 0 {
-                                        Text("Confidence \(Int((suggestion.confidence * 100).rounded()))%")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }
-                        if !refill.shelfSuggestions.isEmpty {
-                            Text("Tap a suggestion to add it to your refill list.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .transition(.opacity)
-                        }
-                    }
-                    .listRowBackground(DesignTokens.Colors.surface)
-                }
-                Section("Items below minimum") {
-                    if refill.refillItems.isEmpty {
-                        Text("Great! Everything is stocked.")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(refill.refillItems) { item in
-                            Button {
-                                selectedItem = item
-                                quantityMoved = max(1, item.minimum - item.quantity)
-                                HapticsManager.shared.playSelectionChanged()
-                            } label: {
-                                VStack(alignment: .leading) {
-                                    Text(item.displayName)
-                                        .font(.headline)
-                                        .foregroundStyle(.primary)
-                                    Text("Current: \(item.quantity) / Minimum: \(item.minimum)")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                    if let storeName = locations.storeName(for: item.storeID) {
-                                        Text(storeName)
-                                            .font(.footnote)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    if !item.locationDescription.isEmpty {
-                                        Text(item.locationDescription)
-                                            .font(.footnote)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }
-                    }
-                }
-                .listRowBackground(DesignTokens.Colors.surface)
-
-                Section("Manual refill items") {
-                    if refill.manualTasks.isEmpty {
-                        Text("Add items you plan to restock and strike them when done.")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(refill.manualTasks) { task in
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(task.name)
-                                        .font(.headline)
-                                    Text("Requested: \(task.quantity)")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                    Text("Available: \(task.availableQuantity)")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                if let storeName = locations.storeName(for: task.storeID) {
-                                    Text(storeName)
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            Spacer()
-                            Button("Strike") {
-                                withAnimation(DesignTokens.Motion.spring()) {
-                                    refill.strikeManual(taskID: task.id)
-                                }
-                                HapticsManager.shared.playSuccess()
-                            }
-                            .buttonStyle(PrimaryButtonStyle(isCompact: true))
-                        }
-                    }
-                    .onDelete { indexSet in
-                        refill.removeManualTasks(at: indexSet)
-                    }
-                }
-                .listRowBackground(DesignTokens.Colors.surface)
-            }
+                shelfSuggestionsSection
+                belowMinimumSection
+                manualTasksSection
             }
             .listStyle(.insetGrouped)
             .animation(DesignTokens.Motion.spring(), value: refill.shelfSuggestions)
@@ -249,6 +127,172 @@ struct RefillView: View {
     private func resetManualForm() {
         manualName = ""
         manualQuantity = 1
+    }
+
+    @ViewBuilder
+    private var shelfSuggestionsSection: some View {
+        if refill.isScanningShelf || !refill.shelfSuggestions.isEmpty || refill.shelfScanError != nil {
+            Section("Shelf scan suggestions") {
+                shelfScanStatus
+                shelfSuggestionRows
+                shelfSuggestionFooter
+            }
+            .listRowBackground(DesignTokens.Colors.surface)
+        }
+    }
+
+    @ViewBuilder
+    private var shelfScanStatus: some View {
+        if refill.isScanningShelf {
+            HStack(spacing: 12) {
+                ProgressView()
+                Text("Analyzing shelf…")
+            }
+        }
+        if let message = refill.shelfScanError {
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.red)
+                .transition(.opacity)
+        }
+    }
+
+    @ViewBuilder
+    private var shelfSuggestionRows: some View {
+        ForEach(refill.shelfSuggestions) { suggestion in
+            Button {
+                withAnimation(DesignTokens.Motion.spring()) {
+                    refill.applyShelfSuggestion(suggestion)
+                }
+                HapticsManager.shared.playSuccess()
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(suggestion.displayName)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text("Needed: \(suggestion.suggestedQuantity)  •  On shelf: \(suggestion.availableQuantity)")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    suggestionCapacityText(for: suggestion)
+                    suggestionConfidenceText(for: suggestion)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func suggestionCapacityText(for suggestion: RefillShelfSuggestion) -> some View {
+        if suggestion.isCapacityBased {
+            Text("Space detected for \(suggestion.suggestedQuantity) bottle\(suggestion.suggestedQuantity == 1 ? "" : "s")")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func suggestionConfidenceText(for suggestion: RefillShelfSuggestion) -> some View {
+        if suggestion.confidence > 0 {
+            Text("Confidence \(Int((suggestion.confidence * 100).rounded()))%")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var shelfSuggestionFooter: some View {
+        if !refill.shelfSuggestions.isEmpty {
+            Text("Tap a suggestion to add it to your refill list.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .transition(.opacity)
+        }
+    }
+
+    @ViewBuilder
+    private var belowMinimumSection: some View {
+        Section("Items below minimum") {
+            if refill.refillItems.isEmpty {
+                Text("Great! Everything is stocked.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(refill.refillItems) { item in
+                    Button {
+                        selectedItem = item
+                        quantityMoved = max(1, item.minimum - item.quantity)
+                        HapticsManager.shared.playSelectionChanged()
+                    } label: {
+                        VStack(alignment: .leading) {
+                            Text(item.displayName)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            Text("Current: \(item.quantity) / Minimum: \(item.minimum)")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            if let storeName = locations.storeName(for: item.storeID) {
+                                Text(storeName)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                            if !item.locationDescription.isEmpty {
+                                Text(item.locationDescription)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+        }
+        .listRowBackground(DesignTokens.Colors.surface)
+    }
+
+    @ViewBuilder
+    private var manualTasksSection: some View {
+        Section("Manual refill items") {
+            if refill.manualTasks.isEmpty {
+                Text("Add items you plan to restock and strike them when done.")
+                    .foregroundStyle(.secondary)
+            } else {
+                manualTaskRows
+            }
+        }
+        .listRowBackground(DesignTokens.Colors.surface)
+    }
+
+    @ViewBuilder
+    private var manualTaskRows: some View {
+        ForEach(refill.manualTasks) { task in
+            HStack {
+                VStack(alignment: .leading) {
+                    Text(task.name)
+                        .font(.headline)
+                    Text("Requested: \(task.quantity)")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text("Available: \(task.availableQuantity)")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    if let storeName = locations.storeName(for: task.storeID) {
+                        Text(storeName)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+                Button("Strike") {
+                    withAnimation(DesignTokens.Motion.spring()) {
+                        refill.strikeManual(taskID: task.id)
+                    }
+                    HapticsManager.shared.playSuccess()
+                }
+                .buttonStyle(PrimaryButtonStyle(isCompact: true))
+            }
+        }
+        .onDelete { indexSet in
+            refill.removeManualTasks(at: indexSet)
+        }
     }
 }
 
