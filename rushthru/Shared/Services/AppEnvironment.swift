@@ -18,6 +18,7 @@ final class AppEnvironment: ObservableObject {
 
         static func standard() -> Dependencies {
             let database = DatabaseManager.shared
+            let authService = AuthService(database: database)
             let activityLogger = ActivityLogViewModel()
             let locationCoordinator = LocationsViewModel(activityLogger: activityLogger)
             let inventoryService = InventoryService(activityLogger: activityLogger, locationCoordinator: locationCoordinator)
@@ -50,7 +51,7 @@ final class AppEnvironment: ObservableObject {
 
             return Dependencies(
                 database: database,
-                auth: AuthService(),
+                auth: authService,
                 inventory: inventoryService,
                 refill: refillViewModel,
                 search: searchViewModel,

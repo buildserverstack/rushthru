@@ -3,15 +3,19 @@ import XCTest
 
 @MainActor
 final class AuthServiceTests: XCTestCase {
+    private var database: DatabaseManager!
     private var auth: AuthService!
 
     override func setUp() async throws {
         try await super.setUp()
-        auth = AuthService()
+        database = DatabaseManager()
+        database.resetForTesting()
+        auth = AuthService(database: database)
     }
 
     override func tearDown() {
         auth = nil
+        database = nil
         super.tearDown()
     }
 
@@ -23,6 +27,7 @@ final class AuthServiceTests: XCTestCase {
     }
 
     func testVerifySetsAndValidatesPin() async throws {
+        await auth.bootstrap()
         auth.setPIN("1234")
         XCTAssertTrue(auth.hasPIN)
         XCTAssertTrue(auth.isLocked)
@@ -36,6 +41,7 @@ final class AuthServiceTests: XCTestCase {
     }
 
     func testCooldownTriggersAfterFiveFailures() async {
+        await auth.bootstrap()
         auth.setPIN("2468")
         for _ in 0..<5 {
             XCTAssertThrowsError(try await auth.verify(pin: "1357"))
@@ -55,7 +61,9 @@ final class AuthServiceTests: XCTestCase {
         }
     }
 
-    func testShouldAutoLockEvaluatesInactivityInterval() {
+    func testShouldAutoLockEvaluatesInactivityInterval() async {
+        await auth.bootstrap()
+        auth.setPIN("1111")
         auth.autoLockMinutes = 1
         let recent = Date().addingTimeInterval(-30)
         XCTAssertFalse(auth.shouldAutoLock(lastInteraction: recent))
@@ -65,11 +73,26 @@ final class AuthServiceTests: XCTestCase {
     }
 
     func testClearPinRemovesLock() async {
+        await auth.bootstrap()
         auth.setPIN("1357")
         auth.clearPIN()
         XCTAssertFalse(auth.hasPIN)
         XCTAssertFalse(auth.isLocked)
         XCTAssertEqual(auth.failedAttempts, 0)
         XCTAssertNil(auth.cooldownUntil)
+    }
+
+    func testBootstrapRestoresStoredPinAndLocks() async {
+        await auth.bootstrap()
+        auth.setPIN("9876")
+        XCTAssertTrue(auth.isLocked)
+        try? await auth.verify(pin: "9876")
+        XCTAssertFalse(auth.isLocked)
+
+        let freshAuth = AuthService(database: database)
+        await freshAuth.bootstrap()
+        XCTAssertTrue(freshAuth.hasPIN)
+        XCTAssertTrue(freshAuth.isLocked)
+        XCTAssertEqual(freshAuth.failedAttempts, 0)
     }
 }

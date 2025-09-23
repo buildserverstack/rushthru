@@ -6,6 +6,7 @@
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21461"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="Stack View" minToolsVersion="7.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -17,44 +18,48 @@
                         <rect key="frame" x="0.0" y="0.0" width="428" height="926"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="QJl-eG-93K">
-                                <rect key="frame" x="44" y="333" width="340" height="260"/>
+                            <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" distribution="equalSpacing" alignment="center" spacing="24" translatesAutoresizingMaskIntoConstraints="NO" id="stk-main">
+                                <rect key="frame" x="79" y="283" width="270" height="360"/>
                                 <subviews>
-                                    <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="ShelfTrack" textAlignment="center" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" translatesAutoresizingMaskIntoConstraints="NO" id="kGs-xW-dcJ">
-                                        <rect key="frame" x="16" y="104" width="308" height="52"/>
-                                        <fontDescription key="fontDescription" type="boldSystem" pointSize="44"/>
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="logo-view">
+                                        <rect key="frame" x="87" y="0.0" width="96" height="96"/>
+                                        <subviews>
+                                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="RT" textAlignment="center" lineBreakMode="clip" baselineAdjustment="alignBaselines" translatesAutoresizingMaskIntoConstraints="NO" id="logo-label">
+                                                <rect key="frame" x="12" y="12" width="72" height="72"/>
+                                                <fontDescription key="fontDescription" type="system" weight="bold" pointSize="48"/>
+                                                <color key="textColor" red="0.97254902119999995" green="0.94901961090000002" blue="0.99215686319999996" alpha="1" colorSpace="calibratedRGB"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                        </subviews>
+                                        <color key="backgroundColor" red="0.3372549117" green="0.2862745225" blue="0.8980392218" alpha="1" colorSpace="calibratedRGB"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="96" id="logo-width"/>
+                                            <constraint firstAttribute="height" constant="96" id="logo-height"/>
+                                            <constraint firstItem="logo-label" firstAttribute="centerX" secondItem="logo-view" secondAttribute="centerX" id="logo-center-x"/>
+                                            <constraint firstItem="logo-label" firstAttribute="centerY" secondItem="logo-view" secondAttribute="centerY" id="logo-center-y"/>
+                                        </constraints>
+                                    </view>
+                                    <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="rushthru" textAlignment="center" lineBreakMode="clip" baselineAdjustment="alignBaselines" translatesAutoresizingMaskIntoConstraints="NO" id="title-label">
+                                        <rect key="frame" x="49" y="120" width="172" height="56"/>
+                                        <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="44"/>
                                         <color key="textColor" systemColor="labelColor" cocoaTouchSystemColor="labelColor"/>
                                         <nil key="highlightedColor"/>
                                     </label>
-                                    <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Keeping shelves full even offline" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="2" translatesAutoresizingMaskIntoConstraints="NO" id="E0J-yG-MfE">
-                                        <rect key="frame" x="16" y="164" width="308" height="56"/>
+                                    <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Shelf intelligence for every shift" textAlignment="center" lineBreakMode="wordWrap" numberOfLines="2" translatesAutoresizingMaskIntoConstraints="NO" id="tagline-label">
+                                        <rect key="frame" x="0.0" y="200" width="270" height="64"/>
                                         <fontDescription key="fontDescription" style="UICTFontTextStyleSubhead" pointSize="17"/>
                                         <color key="textColor" systemColor="secondaryLabelColor" cocoaTouchSystemColor="secondaryLabelColor"/>
                                         <nil key="highlightedColor"/>
                                     </label>
                                 </subviews>
-                                <color key="backgroundColor" red="0.33700001239776611" green="0.28600001335144043" blue="0.89800000190734863" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                <constraints>
-                                    <constraint firstItem="kGs-xW-dcJ" firstAttribute="top" secondItem="QJl-eG-93K" secondAttribute="top" constant="104" id="0T8-k7-XIO"/>
-                                    <constraint firstAttribute="trailing" secondItem="kGs-xW-dcJ" secondAttribute="trailing" constant="16" id="4gn-tZ-fdV"/>
-                                    <constraint firstItem="E0J-yG-MfE" firstAttribute="top" secondItem="kGs-xW-dcJ" secondAttribute="bottom" constant="8" id="7Oe-P7-TCm"/>
-                                    <constraint firstItem="kGs-xW-dcJ" firstAttribute="leading" secondItem="QJl-eG-93K" secondAttribute="leading" constant="16" id="DEc-UJ-e9f"/>
-                                    <constraint firstItem="E0J-yG-MfE" firstAttribute="leading" secondItem="QJl-eG-93K" secondAttribute="leading" constant="16" id="VD6-M7-Xvi"/>
-                                    <constraint firstAttribute="trailing" secondItem="E0J-yG-MfE" secondAttribute="trailing" constant="16" id="xsa-9d-pEB"/>
-                                </constraints>
-                            </view>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchGlyph" translatesAutoresizingMaskIntoConstraints="NO" id="o6p-8w-2RC">
-                                <rect key="frame" x="179" y="184" width="70" height="70"/>
-                            </imageView>
+                            </stackView>
                         </subviews>
-                        <color key="backgroundColor" red="0.058823529630899429" green="0.054901961237192154" blue="0.078431375324726105" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0.058823529630899429" green="0.054901961237192154" blue="0.078431375324726105" alpha="1" colorSpace="calibratedRGB"/>
                         <constraints>
-                            <constraint firstItem="QJl-eG-93K" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="0tU-3P-79n"/>
-                            <constraint firstItem="o6p-8w-2RC" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="8wM-nV-7uF"/>
-                            <constraint firstItem="QJl-eG-93K" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="44" id="L2M-iV-9eE"/>
-                            <constraint firstItem="QJl-eG-93K" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="Q9l-1W-zTm"/>
-                            <constraint firstItem="o6p-8w-2RC" firstAttribute="bottom" secondItem="QJl-eG-93K" secondAttribute="top" constant="-32" id="U3V-XC-Bg9"/>
-                            <constraint firstItem="QJl-eG-93K" firstAttribute="trailing" relation="lessThanOrEqual" secondItem="Ze5-6b-2t3" secondAttribute="trailing" constant="44" id="c5e-Yv-6ht"/>
+                            <constraint firstItem="stk-main" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="center-x"/>
+                            <constraint firstItem="stk-main" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="center-y"/>
+                            <constraint firstItem="stk-main" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="44" id="leading"/>
+                            <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="stk-main" secondAttribute="trailing" constant="44" id="trailing"/>
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                     </view>
@@ -64,7 +69,4 @@
             <point key="canvasLocation" x="132" y="134"/>
         </scene>
     </scenes>
-    <resources>
-        <image name="LaunchGlyph" width="80" height="80"/>
-    </resources>
 </document>

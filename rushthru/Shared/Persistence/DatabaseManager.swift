@@ -14,7 +14,7 @@ final class DatabaseManager {
     #if canImport(GRDB)
     let dbQueue: DatabaseWriter
     #else
-    private var inMemoryStore = InMemoryStore()
+    private var inMemorySettings: AppSettings = .initial
     #endif
 
     init() {
@@ -120,23 +120,80 @@ final class DatabaseManager {
     }
     #endif
 
-    // MARK: - In memory fallback
-    #if !canImport(GRDB)
-    actor InMemoryStore {
-        var items: [InventoryItem] = []
-        var locations: [LocationNode] = []
-        var itemLocations: [ItemLocation] = []
-        var activities: [ActivityLogEntry] = []
-        var searchHistory: [SearchHistoryEntry] = []
-        var settings: AppSettings = .initial
+    func loadSettings() -> AppSettings {
+        #if canImport(GRDB)
+        do {
+            if let row = try dbQueue.read({ db -> Row? in
+                try Row.fetchOne(db, sql: "SELECT pin_hash, pin_salt, failed_attempts, cooldown_until, auto_lock_minutes, biometrics_enabled FROM settings WHERE id = 1")
+            }) {
+                let pinHash: Data? = row["pin_hash"]
+                let pinSalt: Data? = row["pin_salt"]
+                let failedAttempts: Int = row["failed_attempts"]
+                let cooldownValue: Int64? = row["cooldown_until"]
+                let autoLock: Int = row["auto_lock_minutes"]
+                let biometricsFlag: Int = row["biometrics_enabled"]
+                return AppSettings(
+                    pinHash: pinHash,
+                    pinSalt: pinSalt,
+                    failedAttempts: failedAttempts,
+                    cooldownUntil: cooldownValue.flatMap { Date(timeIntervalSince1970: TimeInterval($0)) },
+                    autoLockMinutes: autoLock,
+                    biometricsEnabled: biometricsFlag != 0
+                )
+            } else {
+                let initial = AppSettings.initial
+                save(settings: initial)
+                return initial
+            }
+        } catch {
+            return AppSettings.initial
+        }
+        #else
+        return inMemorySettings
+        #endif
+    }
 
-        func reset() {
-            items = []
-            locations = []
-            itemLocations = []
-            activities = []
-            searchHistory = []
-            settings = .initial
+    func save(settings: AppSettings) {
+        #if canImport(GRDB)
+        do {
+            try dbQueue.write { db in
+                let cooldownValue = settings.cooldownUntil.map { Int64($0.timeIntervalSince1970) }
+                try db.execute(sql: """
+                    INSERT INTO settings (id, pin_hash, pin_salt, failed_attempts, cooldown_until, auto_lock_minutes, biometrics_enabled)
+                    VALUES (1, :pin_hash, :pin_salt, :failed_attempts, :cooldown_until, :auto_lock_minutes, :biometrics_enabled)
+                    ON CONFLICT(id) DO UPDATE SET
+                        pin_hash = excluded.pin_hash,
+                        pin_salt = excluded.pin_salt,
+                        failed_attempts = excluded.failed_attempts,
+                        cooldown_until = excluded.cooldown_until,
+                        auto_lock_minutes = excluded.auto_lock_minutes,
+                        biometrics_enabled = excluded.biometrics_enabled
+                    """,
+                                 arguments: [
+                                    "pin_hash": settings.pinHash as Data?,
+                                    "pin_salt": settings.pinSalt as Data?,
+                                    "failed_attempts": settings.failedAttempts,
+                                    "cooldown_until": cooldownValue as Int64?,
+                                    "auto_lock_minutes": settings.autoLockMinutes,
+                                    "biometrics_enabled": settings.biometricsEnabled ? 1 : 0
+                                 ])
+            }
+        } catch {
+            // In production we might surface diagnostics; here we silently ignore to keep the app running.
+        }
+        #else
+        inMemorySettings = settings
+        #endif
+    }
+
+    #if !canImport(GRDB)
+    func resetForTesting() {
+        inMemorySettings = .initial
+    }
+    #else
+    func resetForTesting() {
+        try? dbQueue.write { db in
+            try db.execute(sql: "DELETE FROM settings")
         }
     }
     #endif
