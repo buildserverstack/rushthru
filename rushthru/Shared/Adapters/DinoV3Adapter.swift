@@ -201,19 +201,23 @@ struct NullShelfRecognizer: ShelfRecognizing {
 #if canImport(Vision)
 final class DinoV3ShelfRecognizer: ShelfRecognizing {
     private let textRequest: VNRecognizeTextRequest
+    #if canImport(MLKitTextRecognition) && canImport(MLKitVision) && canImport(UIKit)
+    private let mlKitRecognizer: TextRecognizer
+    #endif
 
     init(recognitionLevel: VNRequestTextRecognitionLevel = .fast) {
         textRequest = VNRecognizeTextRequest(completionHandler: nil)
         textRequest.recognitionLevel = recognitionLevel
         textRequest.usesLanguageCorrection = true
+        #if canImport(MLKitTextRecognition) && canImport(MLKitVision) && canImport(UIKit)
+        mlKitRecognizer = TextRecognizer.textRecognizer()
+        #endif
     }
 
     func analyzeShelf(imageData: Data, inventory: [ShelfInventorySnapshot]) async throws -> [ShelfRecognitionCandidate] {
         guard !inventory.isEmpty else { return [] }
 
-        let handler = VNImageRequestHandler(data: imageData)
-        try handler.perform([textRequest])
-        let observations = textRequest.results ?? []
+        let recognizedLines = try await extractRecognizedLines(from: imageData)
 
         var matches: [ShelfRecognitionCandidate] = []
         var seenItemIDs = Set<UUID>()
@@ -223,9 +227,8 @@ final class DinoV3ShelfRecognizer: ShelfRecognizing {
             return Set(normalized.split(separator: " ").map(String.init))
         }
 
-        for observation in observations {
-            guard let candidate = observation.topCandidates(1).first else { continue }
-            let candidateTokens = normalizedTokens(for: candidate.string)
+        for recognized in recognizedLines {
+            let candidateTokens = normalizedTokens(for: recognized.text)
             guard !candidateTokens.isEmpty else { continue }
 
             var bestMatch: (item: ShelfInventorySnapshot, overlap: Double)?
@@ -235,7 +238,7 @@ final class DinoV3ShelfRecognizer: ShelfRecognizing {
                 let overlap = Double(candidateTokens.intersection(itemTokens).count)
                 let candidateCount = Double(candidateTokens.count)
                 let score = candidateCount > 0 ? overlap / candidateCount : 0
-                if score > 0.3 { // basic threshold to filter noise
+                if score > 0.3 {
                     if let existing = bestMatch {
                         if score > existing.overlap {
                             bestMatch = (item, score)
@@ -257,7 +260,7 @@ final class DinoV3ShelfRecognizer: ShelfRecognizing {
                     name: match.item.displayName,
                     availableQuantity: match.item.quantity,
                     suggestedQuantity: needed,
-                    confidence: Double(observation.confidence)
+                    confidence: recognized.confidence
                 )
             )
         }
@@ -281,6 +284,59 @@ final class DinoV3ShelfRecognizer: ShelfRecognizing {
             }
             return lhs.confidence > rhs.confidence
         }
+    }
+
+    private func extractRecognizedLines(from imageData: Data) async throws -> [RecognizedLine] {
+        #if canImport(MLKitTextRecognition) && canImport(MLKitVision) && canImport(UIKit)
+        if let image = UIImage(data: imageData) {
+            let visionImage = VisionImage(image: image)
+            visionImage.orientation = image.imageOrientation
+
+            let mlKitLines: [RecognizedLine] = try await withCheckedThrowingContinuation { continuation in
+                mlKitRecognizer.process(visionImage) { text, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                        return
+                    }
+
+                    guard let text else {
+                        continuation.resume(returning: [])
+                        return
+                    }
+
+                    var results: [RecognizedLine] = []
+                    for block in text.blocks {
+                        for line in block.lines {
+                            let trimmed = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                            guard !trimmed.isEmpty else { continue }
+                            results.append(RecognizedLine(text: trimmed, confidence: 0.85))
+                        }
+                    }
+                    continuation.resume(returning: results)
+                }
+            }
+
+            if !mlKitLines.isEmpty {
+                return mlKitLines
+            }
+        }
+        #endif
+
+        let handler = VNImageRequestHandler(data: imageData)
+        try handler.perform([textRequest])
+        let observations = textRequest.results ?? []
+
+        return observations.compactMap { observation in
+            guard let candidate = observation.topCandidates(1).first else { return nil }
+            let trimmed = candidate.string.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return nil }
+            return RecognizedLine(text: trimmed, confidence: Double(observation.confidence))
+        }
+    }
+
+    private struct RecognizedLine: Sendable {
+        let text: String
+        let confidence: Double
     }
 }
 #else
