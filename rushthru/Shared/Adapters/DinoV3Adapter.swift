@@ -26,7 +26,7 @@ public struct DonutTextObservation: Sendable, Equatable {
     }
 }
 
-public protocol DonutTextRecognizing {
+public protocol DonutTextRecognizing: Sendable {
     func recognizeText(in imageData: Data) async throws -> [DonutTextObservation]
 }
 
@@ -83,6 +83,8 @@ public final class DonutSmallTextRecognizer: DonutTextRecognizing {
     }
 }
 #endif
+
+extension DonutSmallTextRecognizer: @unchecked Sendable {}
 
 #if canImport(MLKitTextRecognition) && canImport(MLKitVision) && canImport(UIKit)
 public final class MLKitTextRecognizerAdapter: DonutTextRecognizing {
@@ -142,6 +144,8 @@ public final class MLKitTextRecognizerAdapter: DonutTextRecognizing {
 }
 #endif
 
+extension MLKitTextRecognizerAdapter: @unchecked Sendable {}
+
 public struct ShelfRecognitionCandidate: Identifiable, Equatable, Sendable {
     public let id: UUID
     public let itemID: UUID?
@@ -160,7 +164,7 @@ public struct ShelfRecognitionCandidate: Identifiable, Equatable, Sendable {
     }
 }
 
-protocol ShelfRecognizing {
+protocol ShelfRecognizing: Sendable {
     func analyzeShelf(imageData: Data, inventory: [ShelfInventorySnapshot]) async throws -> [ShelfRecognitionCandidate]
 }
 
@@ -360,6 +364,9 @@ final class DinoV3ShelfRecognizer: ShelfRecognizing {
     }
     #endif
 }
+#if canImport(Vision)
+extension DinoV3ShelfRecognizer: @unchecked Sendable {}
+#endif
 #else
 final class DinoV3ShelfRecognizer: ShelfRecognizing {
     init() {}

@@ -33,10 +33,12 @@ public final class LiveCameraSessionManager: NSObject, CameraSessionManaging {
     }
 
     public func startSession() async {
+        let session = self.session
+        let queue = self.queue
         await withCheckedContinuation { continuation in
             queue.async {
-                if !self.session.isRunning {
-                    self.session.startRunning()
+                if !session.isRunning {
+                    session.startRunning()
                 }
                 continuation.resume()
             }
@@ -44,14 +46,17 @@ public final class LiveCameraSessionManager: NSObject, CameraSessionManaging {
     }
 
     public func stopSession() {
+        let session = self.session
+        let queue = self.queue
         queue.async {
-            if self.session.isRunning {
-                self.session.stopRunning()
+            if session.isRunning {
+                session.stopRunning()
             }
         }
     }
 
     public func setTorch(enabled: Bool) async throws {
+        let queue = self.queue
         try await withCheckedThrowingContinuation { continuation in
             queue.async {
                 do {

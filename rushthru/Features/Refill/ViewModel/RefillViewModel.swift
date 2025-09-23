@@ -137,7 +137,7 @@ final class RefillViewModel: ObservableObject {
                 var suggestedQuantity = max(0, candidate.suggestedQuantity)
                 var isCapacityBased = false
 
-                if let linkedItem {
+                if linkedItem != nil {
                     if suggestedQuantity > 0 {
                         if deficit > 0 {
                             suggestedQuantity = max(suggestedQuantity, max(1, deficit))

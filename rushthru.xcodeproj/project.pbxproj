@@ -15,10 +15,6 @@
                         isa = PBXBuildFile;
                         productRef = D9F0B9022E7A5A0000A1F001 /* SwiftCSV */;
                 };
-                D9F0B9502E7A5A0000A1F001 /* LaunchScreen.storyboard in Resources */ = {
-                        isa = PBXBuildFile;
-                        fileRef = D9F0B9512E7A5A0000A1F001 /* LaunchScreen.storyboard */;
-                };
                 D9F0B9522E7A5A0000A1F001 /* PrivacyInfo.xcprivacy in Resources */ = {
                         isa = PBXBuildFile;
                         fileRef = D9F0B9532E7A5A0000A1F001 /* PrivacyInfo.xcprivacy */;
@@ -56,7 +52,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
                         membershipExceptions = (
                                 Info.plist,
-                                LaunchScreen.storyboard,
                                 PrivacyInfo.xcprivacy,
                         );
 			target = D9B59C112E790A7400BC4F5A /* rushthru */;
@@ -255,7 +250,6 @@
                         isa = PBXResourcesBuildPhase;
                         buildActionMask = 2147483647;
                         files = (
-                                D9F0B9502E7A5A0000A1F001 /* LaunchScreen.storyboard in Resources */,
                                 D9F0B9522E7A5A0000A1F001 /* PrivacyInfo.xcprivacy in Resources */,
                         );
                         runOnlyForDeploymentPostprocessing = 0;
