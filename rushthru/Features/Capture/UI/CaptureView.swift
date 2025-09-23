@@ -193,47 +193,61 @@ struct CaptureView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                ForEach(suggestionFieldTypes, id: \.self) { fieldType in
-                    let options = options(for: fieldType)
-                    if !options.isEmpty {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(label(for: fieldType))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-
-                            ForEach(options, id: \.self) { option in
-                                let isSelected = isCandidateSelected(option)
-                                Button {
-                                    withAnimation(DesignTokens.Motion.spring()) {
-                                        if isSelected {
-                                            remove(option)
-                                        } else {
-                                            apply(option)
-                                        }
-                                    }
-                                    HapticsManager.shared.playSelectionChanged()
-                                } label: {
-                                    HStack {
-                                        Text(option.value)
-                                            .font(.body)
-                                        Spacer()
-                                        Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
-                                            .foregroundStyle(isSelected ? .tint : .secondary)
-                                    }
-                                    .padding(.vertical, 4)
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                                .contentShape(RoundedRectangle(cornerRadius: DesignTokens.Radii.sm))
-                                .matchedGeometryEffect(id: option, in: suggestionNamespace, isSource: true)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
+                ForEach(suggestionFieldTypes, id: \.self, content: suggestionGroup(for:))
             }
         }
         .listRowBackground(DesignTokens.Colors.surface)
+    }
+
+    @ViewBuilder
+    private func suggestionGroup(for fieldType: OCRCandidateField.FieldType) -> some View {
+        let fieldOptions = options(for: fieldType)
+        if fieldOptions.isEmpty {
+            EmptyView()
+        } else {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(label(for: fieldType))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                suggestionButtons(for: fieldOptions)
+            }
+            .padding(.vertical, 4)
+        }
+    }
+
+    @ViewBuilder
+    private func suggestionButtons(for options: [OCRCandidateField]) -> some View {
+        ForEach(options, id: \.self) { option in
+            suggestionButton(for: option)
+        }
+    }
+
+    private func suggestionButton(for option: OCRCandidateField) -> some View {
+        let isSelected = isCandidateSelected(option)
+        return Button {
+            withAnimation(DesignTokens.Motion.spring()) {
+                if isSelected {
+                    remove(option)
+                } else {
+                    apply(option)
+                }
+            }
+            HapticsManager.shared.playSelectionChanged()
+        } label: {
+            HStack {
+                Text(option.value)
+                    .font(.body)
+                Spacer()
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
+                    .foregroundStyle(isSelected ? .tint : .secondary)
+            }
+            .padding(.vertical, 4)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .contentShape(RoundedRectangle(cornerRadius: DesignTokens.Radii.sm))
+        .matchedGeometryEffect(id: option, in: suggestionNamespace, isSource: true)
     }
 
     private var inventorySection: some View {
