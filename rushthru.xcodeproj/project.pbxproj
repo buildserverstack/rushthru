@@ -6,6 +6,25 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+                D9F0B9052E7A5A0000A1F001 /* GRDB in Frameworks */ = {
+                        isa = PBXBuildFile;
+                        productRef = D9F0B9012E7A5A0000A1F001 /* GRDB */;
+                };
+                D9F0B9062E7A5A0000A1F001 /* SwiftCSV in Frameworks */ = {
+                        isa = PBXBuildFile;
+                        productRef = D9F0B9022E7A5A0000A1F001 /* SwiftCSV */;
+                };
+                D9F0B9502E7A5A0000A1F001 /* LaunchScreen.storyboard in Resources */ = {
+                        isa = PBXBuildFile;
+                        fileRef = D9F0B9512E7A5A0000A1F001 /* LaunchScreen.storyboard */;
+                };
+                D9F0B9522E7A5A0000A1F001 /* PrivacyInfo.xcprivacy in Resources */ = {
+                        isa = PBXBuildFile;
+                        fileRef = D9F0B9532E7A5A0000A1F001 /* PrivacyInfo.xcprivacy */;
+                };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		D9B59C272E790A7500BC4F5A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,9 +43,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		D9B59C122E790A7400BC4F5A /* rushthru.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = rushthru.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D9B59C262E790A7500BC4F5A /* rushthruTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rushthruTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		D9B59C302E790A7500BC4F5A /* rushthruUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rushthruUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+                D9F0B9072E7A5A0000A1F001 /* Configuration.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = rushthru/App/Configs/Configuration.xcconfig; sourceTree = "<group>"; };
+                D9B59C122E790A7400BC4F5A /* rushthru.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = rushthru.app; sourceTree = BUILT_PRODUCTS_DIR; };
+                D9B59C262E790A7500BC4F5A /* rushthruTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rushthruTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+                D9B59C302E790A7500BC4F5A /* rushthruUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rushthruUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+                D9F0B9512E7A5A0000A1F001 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = rushthru/Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+                D9F0B9532E7A5A0000A1F001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = rushthru/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -65,6 +87,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			        D9F0B9052E7A5A0000A1F001 /* GRDB in Frameworks */,
+			        D9F0B9062E7A5A0000A1F001 /* SwiftCSV in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -212,6 +236,10 @@
 			productRefGroup = D9B59C132E790A7400BC4F5A /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
+			packageReferences = (
+				D9F0B9032E7A5A0000A1F001 /* XCRemoteSwiftPackageReference "GRDB" */,
+				D9F0B9042E7A5A0000A1F001 /* XCRemoteSwiftPackageReference "SwiftCSV" */,
+			);
 			targets = (
 				D9B59C112E790A7400BC4F5A /* rushthru */,
 				D9B59C252E790A7500BC4F5A /* rushthruTests */,
@@ -221,13 +249,15 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		D9B59C102E790A7400BC4F5A /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+                D9B59C102E790A7400BC4F5A /* Resources */ = {
+                        isa = PBXResourcesBuildPhase;
+                        buildActionMask = 2147483647;
+                        files = (
+                                D9F0B9502E7A5A0000A1F001 /* LaunchScreen.storyboard in Resources */,
+                                D9F0B9522E7A5A0000A1F001 /* PrivacyInfo.xcprivacy in Resources */,
+                        );
+                        runOnlyForDeploymentPostprocessing = 0;
+                };
 		D9B59C242E790A7500BC4F5A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -290,13 +320,13 @@
 				CODE_SIGN_ENTITLEMENTS = rushthru/rushthru.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = P42CGT545J;
+                                DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = rushthru/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+                            INFOPLIST_KEY_UILaunchScreen_Generation = NO;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -304,9 +334,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.rushthru.www.rushthru;
+				PRODUCT_BUNDLE_IDENTIFIER = app.rushthru.www;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+                                SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -320,13 +351,13 @@
 				CODE_SIGN_ENTITLEMENTS = rushthru/rushthru.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = P42CGT545J;
+                                DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = rushthru/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+                            INFOPLIST_KEY_UILaunchScreen_Generation = NO;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -334,9 +365,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.rushthru.www.rushthru;
+				PRODUCT_BUNDLE_IDENTIFIER = app.rushthru.www;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+                                SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -377,7 +409,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = P42CGT545J;
+                                DEVELOPMENT_TEAM = "";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -441,7 +473,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = P42CGT545J;
+                                DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -469,7 +501,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = P42CGT545J;
+                                DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				MARKETING_VERSION = 1.0;
@@ -488,7 +520,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = P42CGT545J;
+                                DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				MARKETING_VERSION = 1.0;
@@ -506,7 +538,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = P42CGT545J;
+                                DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.rushthru.www.rushthruUITests;
@@ -523,7 +555,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = P42CGT545J;
+                                DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.rushthru.www.rushthruUITests;
@@ -536,6 +568,38 @@
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
+
+/* Begin XCSwiftPackageProductDependency section */
+                D9F0B9012E7A5A0000A1F001 /* GRDB */ = {
+                        isa = XCSwiftPackageProductDependency;
+                        package = D9F0B9032E7A5A0000A1F001 /* XCRemoteSwiftPackageReference "GRDB" */;
+                        productName = GRDB;
+                };
+                D9F0B9022E7A5A0000A1F001 /* SwiftCSV */ = {
+                        isa = XCSwiftPackageProductDependency;
+                        package = D9F0B9042E7A5A0000A1F001 /* XCRemoteSwiftPackageReference "SwiftCSV" */;
+                        productName = SwiftCSV;
+                };
+/* End XCSwiftPackageProductDependency section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+                D9F0B9032E7A5A0000A1F001 /* XCRemoteSwiftPackageReference "GRDB" */ = {
+                        isa = XCRemoteSwiftPackageReference;
+                        repositoryURL = "https://github.com/groue/GRDB.swift";
+                        requirement = {
+                                kind = upToNextMajorVersion;
+                                minimumVersion = 6.0.0;
+                        };
+                };
+                D9F0B9042E7A5A0000A1F001 /* XCRemoteSwiftPackageReference "SwiftCSV" */ = {
+                        isa = XCRemoteSwiftPackageReference;
+                        repositoryURL = "https://github.com/swiftcsv/SwiftCSV";
+                        requirement = {
+                                kind = upToNextMajorVersion;
+                                minimumVersion = 0.10.0;
+                        };
+                };
+/* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCConfigurationList section */
 		D9B59C0D2E790A7400BC4F5A /* Build configuration list for PBXProject "rushthru" */ = {

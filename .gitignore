@@ -1,0 +1,13 @@
+# Xcode user data
+**/xcuserdata/
+
+# Derived data and build outputs
+DerivedData/
+build/
+
+# SwiftPM artifacts
+.swiftpm/
+Packages/
+
+# Misc
+.DS_Store
