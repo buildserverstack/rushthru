@@ -189,7 +189,7 @@ struct CaptureView: View {
                 Text("Scan a label to see suggested fields.")
                     .foregroundStyle(.secondary)
             } else {
-                Text("Tap suggestions to add them to a field. You can pick more than one for names.")
+                Text("Tap suggestions to add them to a field, or tap again to remove something you've added.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
@@ -202,9 +202,14 @@ struct CaptureView: View {
                                 .foregroundStyle(.secondary)
 
                             ForEach(options, id: \.self) { option in
+                                let isSelected = isCandidateSelected(option)
                                 Button {
                                     withAnimation(DesignTokens.Motion.spring()) {
-                                        apply(option)
+                                        if isSelected {
+                                            remove(option)
+                                        } else {
+                                            apply(option)
+                                        }
                                     }
                                     HapticsManager.shared.playSelectionChanged()
                                 } label: {
@@ -212,13 +217,8 @@ struct CaptureView: View {
                                         Text(option.value)
                                             .font(.body)
                                         Spacer()
-                                        if isCandidateSelected(option) {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .foregroundStyle(.tint)
-                                        } else {
-                                            Image(systemName: "plus.circle")
-                                                .foregroundStyle(.secondary)
-                                        }
+                                        Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
+                                            .foregroundStyle(isSelected ? .tint : .secondary)
                                     }
                                     .padding(.vertical, 4)
                                 }
@@ -352,6 +352,30 @@ struct CaptureView: View {
             if let size = parseSizeValue(from: candidate.value) {
                 editableFields.size = size
             }
+        }
+    }
+
+    private func remove(_ candidate: OCRCandidateField) {
+        switch candidate.type {
+        case .name:
+            removeOccurrence(candidate.value, from: &editableFields.name)
+        case .subName:
+            removeOccurrence(candidate.value, from: &editableFields.subName)
+        case .type, .sizeML:
+            return
+        }
+    }
+
+    private func removeOccurrence(_ candidate: String, from field: inout String) {
+        let trimmedCandidate = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedCandidate.isEmpty else { return }
+        if let range = field.range(of: trimmedCandidate, options: [.caseInsensitive, .diacriticInsensitive]) {
+            field.removeSubrange(range)
+            let collapsed = field
+                .components(separatedBy: .whitespacesAndNewlines)
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            field = collapsed
         }
     }
 
