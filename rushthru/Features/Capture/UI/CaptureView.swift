@@ -240,7 +240,7 @@ struct CaptureView: View {
                     .font(.body)
                 Spacer()
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
-                    .foregroundStyle(isSelected ? .tint : .secondary)
+                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
             }
             .padding(.vertical, 4)
         }
