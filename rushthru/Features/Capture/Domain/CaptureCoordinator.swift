@@ -41,9 +41,7 @@ final class CaptureCoordinator: ObservableObject {
 
         do {
             let recognizer = source == .photoLibrary ? galleryRecognizer : cameraRecognizer
-            let observations: [DonutTextObservation] = try await autoreleasepool {
-                try await recognizer.recognizeText(in: imageData)
-            }
+            let observations: [DonutTextObservation] = try await recognizer.recognizeText(in: imageData)
             let parsed = parse(observations: observations)
             lastResult = OCRResult(fields: parsed.fields)
             if let normalized = parsed.normalizedFields {
