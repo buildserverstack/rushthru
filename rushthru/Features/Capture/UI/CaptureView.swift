@@ -69,8 +69,8 @@ struct CaptureView: View {
             }
             #if canImport(UIKit)
             .sheet(item: $activeImageSource) { source in
-                ImagePicker(sourceType: source.sourceType) { data in
-                    Task { await capture.process(imageData: data) }
+                ImagePicker(source: source) { data in
+                    Task { await capture.process(imageData: data, from: source.captureSource) }
                 }
             }
             #endif
@@ -492,17 +492,26 @@ private enum ImagePickerSource: Identifiable {
         UIImagePickerController.isSourceTypeAvailable(sourceType)
     }
 
+    var captureSource: CaptureCoordinator.Source {
+        switch self {
+        case .camera:
+            return .camera
+        case .photoLibrary:
+            return .photoLibrary
+        }
+    }
+
 }
 
 private struct ImagePicker: UIViewControllerRepresentable {
-    let sourceType: UIImagePickerController.SourceType
+    let source: ImagePickerSource
     let completion: (Data) -> Void
 
     @Environment(\.dismiss) private var dismiss
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
-        picker.sourceType = sourceType
+        picker.sourceType = source.sourceType
         picker.delegate = context.coordinator
         picker.allowsEditing = false
         return picker

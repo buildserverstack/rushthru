@@ -6,6 +6,11 @@ import CoreML
 #if canImport(Vision)
 import Vision
 #endif
+#if canImport(MLKitTextRecognition) && canImport(MLKitVision) && canImport(UIKit)
+import MLKitTextRecognition
+import MLKitVision
+import UIKit
+#endif
 
 /// Observation wrapper emitted by the Donut-small recognizer. The production
 /// build is expected to bundle the Donut-small CoreML checkpoint; until it is
@@ -75,6 +80,64 @@ public final class DonutSmallTextRecognizer: DonutTextRecognizing {
     public init() {}
     public func recognizeText(in imageData: Data) async throws -> [DonutTextObservation] {
         []
+    }
+}
+#endif
+
+#if canImport(MLKitTextRecognition) && canImport(MLKitVision) && canImport(UIKit)
+public final class MLKitTextRecognizerAdapter: DonutTextRecognizing {
+    private let recognizer: TextRecognizer
+    private let fallback: DonutTextRecognizing
+
+    public init(fallback: DonutTextRecognizing) {
+        self.recognizer = TextRecognizer.textRecognizer()
+        self.fallback = fallback
+    }
+
+    public func recognizeText(in imageData: Data) async throws -> [DonutTextObservation] {
+        guard let image = UIImage(data: imageData) else {
+            return try await fallback.recognizeText(in: imageData)
+        }
+
+        let visionImage = VisionImage(image: image)
+        visionImage.orientation = image.imageOrientation
+
+        return try await withCheckedThrowingContinuation { continuation in
+            recognizer.process(visionImage) { text, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard let text else {
+                    continuation.resume(returning: [])
+                    return
+                }
+
+                var observations: [DonutTextObservation] = []
+                for block in text.blocks {
+                    for line in block.lines {
+                        let trimmed = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !trimmed.isEmpty else { continue }
+                        observations.append(DonutTextObservation(text: trimmed, confidence: 1.0))
+                    }
+                }
+
+                continuation.resume(returning: observations)
+            }
+        }
+    }
+}
+#else
+public final class MLKitTextRecognizerAdapter: DonutTextRecognizing {
+    private let fallback: DonutTextRecognizing
+
+    public init(fallback: DonutTextRecognizing) {
+        self.fallback = fallback
+    }
+
+    public func recognizeText(in imageData: Data) async throws -> [DonutTextObservation] {
+        try await fallback.recognizeText(in: imageData)
     }
 }
 #endif

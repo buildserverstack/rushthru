@@ -34,11 +34,16 @@ final class AppEnvironment: ObservableObject {
         self.search = SearchCoordinator(inventoryService: inventoryService)
         self.csv = CSVCoordinator(inventoryService: inventoryService, locationCoordinator: locationCoordinator, activityLogger: activityLogger)
         #if canImport(Vision)
-        let recognizer: DonutTextRecognizing = DonutSmallTextRecognizer()
+        let cameraRecognizer: DonutTextRecognizing = DonutSmallTextRecognizer()
         #else
-        let recognizer: DonutTextRecognizing = NullDonutTextRecognizer()
+        let cameraRecognizer: DonutTextRecognizing = NullDonutTextRecognizer()
         #endif
-        self.capture = CaptureCoordinator(inventoryService: inventoryService, recognizer: recognizer)
+        let galleryRecognizer: DonutTextRecognizing = MLKitTextRecognizerAdapter(fallback: cameraRecognizer)
+        self.capture = CaptureCoordinator(
+            inventoryService: inventoryService,
+            cameraRecognizer: cameraRecognizer,
+            galleryRecognizer: galleryRecognizer
+        )
         self.bulkCounts = BulkCountCoordinator(inventoryService: inventoryService)
         self.auth = AuthService()
 

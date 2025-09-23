@@ -8,6 +8,11 @@ final class CaptureCoordinator: ObservableObject {
         let proposed: NormalizedFields
     }
 
+    enum Source {
+        case camera
+        case photoLibrary
+    }
+
     @Published private(set) var lastResult: OCRResult = .empty
     @Published private(set) var draftFields: NormalizedFields = .default
     @Published private(set) var pendingDuplicate: PendingDuplicate?
@@ -15,20 +20,27 @@ final class CaptureCoordinator: ObservableObject {
     @Published var errorMessage: String?
 
     private let inventoryService: InventoryService
-    private let recognizer: DonutTextRecognizing
+    private let cameraRecognizer: DonutTextRecognizing
+    private let galleryRecognizer: DonutTextRecognizing
 
-    init(inventoryService: InventoryService, recognizer: DonutTextRecognizing) {
+    init(
+        inventoryService: InventoryService,
+        cameraRecognizer: DonutTextRecognizing,
+        galleryRecognizer: DonutTextRecognizing
+    ) {
         self.inventoryService = inventoryService
-        self.recognizer = recognizer
+        self.cameraRecognizer = cameraRecognizer
+        self.galleryRecognizer = galleryRecognizer
     }
 
     func bootstrap() async {}
 
-    func process(imageData: Data) async {
+    func process(imageData: Data, from source: Source) async {
         isProcessing = true
         defer { isProcessing = false }
 
         do {
+            let recognizer = source == .photoLibrary ? galleryRecognizer : cameraRecognizer
             let observations = try await recognizer.recognizeText(in: imageData)
             let parsed = parse(observations: observations)
             lastResult = OCRResult(fields: parsed.fields)
