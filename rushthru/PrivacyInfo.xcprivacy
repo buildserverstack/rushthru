@@ -1,0 +1,11 @@
+{
+  "version" : 1,
+  "identifier" : "app.rushthru.www.privacy",
+  "description" : "ShelfTrack operates entirely offline and does not collect data from users.",
+  "privacy" : {
+    "tracking" : {
+      "allowsTracking" : false
+    },
+    "dataCategories" : []
+  }
+}
