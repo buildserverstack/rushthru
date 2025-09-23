@@ -3,14 +3,14 @@ import XCTest
 
 @MainActor
 final class InventoryServiceTests: XCTestCase {
-    private var activity: ActivityLogCoordinator!
-    private var locations: LocationCoordinator!
+    private var activity: ActivityLogViewModel!
+    private var locations: LocationsViewModel!
     private var inventory: InventoryService!
 
     override func setUp() async throws {
         try await super.setUp()
-        activity = ActivityLogCoordinator()
-        locations = LocationCoordinator(activityLogger: activity)
+        activity = ActivityLogViewModel()
+        locations = LocationsViewModel(activityLogger: activity)
         await locations.bootstrap()
         inventory = InventoryService(activityLogger: activity, locationCoordinator: locations)
         await inventory.bootstrap()

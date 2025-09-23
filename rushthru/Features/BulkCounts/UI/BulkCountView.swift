@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct BulkCountView: View {
-    @EnvironmentObject private var bulkCounts: BulkCountCoordinator
+    @EnvironmentObject private var bulkCounts: BulkCountViewModel
     @EnvironmentObject private var inventory: InventoryService
-    @EnvironmentObject private var locations: LocationCoordinator
+    @EnvironmentObject private var locations: LocationsViewModel
     @State private var searchText: String = ""
     @State private var selectedType: String? = nil
 

@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct CaptureView: View {
-    @EnvironmentObject private var capture: CaptureCoordinator
+    @EnvironmentObject private var capture: CaptureViewModel
     @EnvironmentObject private var inventory: InventoryService
-    @EnvironmentObject private var locations: LocationCoordinator
+    @EnvironmentObject private var locations: LocationsViewModel
     @State private var editableFields = EditableFields()
     @State private var showConfirmation = false
     @State private var confirmationMessage = ""
     @State private var showDuplicatePrompt = false
-    @State private var duplicateContext: CaptureCoordinator.PendingDuplicate?
+    @State private var duplicateContext: CaptureViewModel.PendingDuplicate?
     @Namespace private var suggestionNamespace
     #if canImport(UIKit)
     @State private var activeImageSource: ImagePickerSource?
@@ -492,7 +492,7 @@ private enum ImagePickerSource: Identifiable {
         UIImagePickerController.isSourceTypeAvailable(sourceType)
     }
 
-    var captureSource: CaptureCoordinator.Source {
+    var captureSource: CaptureViewModel.Source {
         switch self {
         case .camera:
             return .camera

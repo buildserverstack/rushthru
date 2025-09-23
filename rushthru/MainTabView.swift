@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @EnvironmentObject private var refillService: RefillService
-    @EnvironmentObject private var searchCoordinator: SearchCoordinator
-    @EnvironmentObject private var captureCoordinator: CaptureCoordinator
+    @EnvironmentObject private var refillViewModel: RefillViewModel
+    @EnvironmentObject private var searchViewModel: SearchViewModel
+    @EnvironmentObject private var captureViewModel: CaptureViewModel
 
     var body: some View {
         TabView {
@@ -29,9 +29,9 @@ struct MainTabView: View {
                 }
         }
         .task {
-            await captureCoordinator.bootstrap()
-            await searchCoordinator.bootstrap()
-            await refillService.bootstrap()
+            await captureViewModel.bootstrap()
+            await searchViewModel.bootstrap()
+            await refillViewModel.bootstrap()
         }
     }
 }

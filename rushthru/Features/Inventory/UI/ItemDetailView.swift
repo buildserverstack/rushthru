@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ItemDetailView: View {
     @EnvironmentObject private var inventory: InventoryService
-    @EnvironmentObject private var locations: LocationCoordinator
+    @EnvironmentObject private var locations: LocationsViewModel
     private let itemID: UUID
 
     @State private var latestItem: InventoryItem

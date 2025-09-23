@@ -6,20 +6,20 @@ final class AppEnvironment: ObservableObject {
     let database: DatabaseManager
     let auth: AuthService
     let inventory: InventoryService
-    let refill: RefillService
-    let search: SearchCoordinator
-    let locations: LocationCoordinator
-    let csv: CSVCoordinator
-    let activity: ActivityLogCoordinator
-    let capture: CaptureCoordinator
-    let bulkCounts: BulkCountCoordinator
+    let refill: RefillViewModel
+    let search: SearchViewModel
+    let locations: LocationsViewModel
+    let csv: CSVViewModel
+    let activity: ActivityLogViewModel
+    let capture: CaptureViewModel
+    let bulkCounts: BulkCountViewModel
 
     @Published private(set) var isReady = false
 
     init(preview: Bool = false) {
         self.database = DatabaseManager.shared
-        let activityLogger = ActivityLogCoordinator()
-        let locationCoordinator = LocationCoordinator(activityLogger: activityLogger)
+        let activityLogger = ActivityLogViewModel()
+        let locationCoordinator = LocationsViewModel(activityLogger: activityLogger)
         let inventoryService = InventoryService(activityLogger: activityLogger, locationCoordinator: locationCoordinator)
         self.inventory = inventoryService
         self.locations = locationCoordinator
@@ -30,21 +30,21 @@ final class AppEnvironment: ObservableObject {
         #else
         let shelfRecognizer: ShelfRecognizing = NullShelfRecognizer()
         #endif
-        self.refill = RefillService(inventoryService: inventoryService, shelfRecognizer: shelfRecognizer)
-        self.search = SearchCoordinator(inventoryService: inventoryService)
-        self.csv = CSVCoordinator(inventoryService: inventoryService, locationCoordinator: locationCoordinator, activityLogger: activityLogger)
+        self.refill = RefillViewModel(inventoryService: inventoryService, shelfRecognizer: shelfRecognizer)
+        self.search = SearchViewModel(inventoryService: inventoryService)
+        self.csv = CSVViewModel(inventoryService: inventoryService, locationCoordinator: locationCoordinator, activityLogger: activityLogger)
         #if canImport(Vision)
         let cameraRecognizer: DonutTextRecognizing = DonutSmallTextRecognizer()
         #else
         let cameraRecognizer: DonutTextRecognizing = NullDonutTextRecognizer()
         #endif
         let galleryRecognizer: DonutTextRecognizing = MLKitTextRecognizerAdapter(fallback: cameraRecognizer)
-        self.capture = CaptureCoordinator(
+        self.capture = CaptureViewModel(
             inventoryService: inventoryService,
             cameraRecognizer: cameraRecognizer,
             galleryRecognizer: galleryRecognizer
         )
-        self.bulkCounts = BulkCountCoordinator(inventoryService: inventoryService)
+        self.bulkCounts = BulkCountViewModel(inventoryService: inventoryService)
         self.auth = AuthService()
 
         if preview {

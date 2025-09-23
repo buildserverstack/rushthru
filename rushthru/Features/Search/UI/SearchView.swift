@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct SearchView: View {
-    @EnvironmentObject private var search: SearchCoordinator
+    @EnvironmentObject private var search: SearchViewModel
     @EnvironmentObject private var inventory: InventoryService
-    @EnvironmentObject private var locations: LocationCoordinator
+    @EnvironmentObject private var locations: LocationsViewModel
 
     var body: some View {
         NavigationStack {

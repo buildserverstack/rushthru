@@ -1,7 +1,7 @@
 import Foundation
 
 @MainActor
-final class BulkCountCoordinator: ObservableObject {
+final class BulkCountViewModel: ObservableObject {
     struct PendingAdjustment: Identifiable {
         var id: UUID { item.id }
         var item: InventoryItem

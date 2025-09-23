@@ -1,19 +1,19 @@
 import Foundation
 
 @MainActor
-final class CSVCoordinator: ObservableObject {
+final class CSVViewModel: ObservableObject {
     enum CSVError: Error {
         case validationFailed([CSVValidationIssue])
     }
 
     private let inventoryService: InventoryService
-    private let locationCoordinator: LocationCoordinator
-    private let activityLogger: ActivityLogCoordinator
+    private let locationCoordinator: LocationsViewModel
+    private let activityLogger: ActivityLogViewModel
 
     @Published private(set) var lastImportSummary: CSVImportSummary?
     @Published private(set) var lastValidationIssues: [CSVValidationIssue] = []
 
-    init(inventoryService: InventoryService, locationCoordinator: LocationCoordinator, activityLogger: ActivityLogCoordinator) {
+    init(inventoryService: InventoryService, locationCoordinator: LocationsViewModel, activityLogger: ActivityLogViewModel) {
         self.inventoryService = inventoryService
         self.locationCoordinator = locationCoordinator
         self.activityLogger = activityLogger

@@ -5,8 +5,8 @@ import UIKit
 #endif
 
 struct RefillView: View {
-    @EnvironmentObject private var refill: RefillService
-    @EnvironmentObject private var locations: LocationCoordinator
+    @EnvironmentObject private var refill: RefillViewModel
+    @EnvironmentObject private var locations: LocationsViewModel
     @State private var selectedItem: InventoryItem?
     @State private var quantityMoved: Int = 1
     @State private var showAddManual = false
@@ -297,7 +297,7 @@ struct RefillView: View {
 }
 
 struct RefillShelfScannerView: View {
-    @EnvironmentObject private var refill: RefillService
+    @EnvironmentObject private var refill: RefillViewModel
     @Environment(\.dismiss) private var dismiss
 
     @State private var pickerItem: PhotosPickerItem?

@@ -2,9 +2,9 @@ import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject private var inventory: InventoryService
-    @EnvironmentObject private var refill: RefillService
-    @EnvironmentObject private var activity: ActivityLogCoordinator
-    @EnvironmentObject private var locations: LocationCoordinator
+    @EnvironmentObject private var refill: RefillViewModel
+    @EnvironmentObject private var activity: ActivityLogViewModel
+    @EnvironmentObject private var locations: LocationsViewModel
     @State private var newTypeName: String = ""
     @State private var typeStatus: String = ""
     @State private var newSizeValue: String = ""

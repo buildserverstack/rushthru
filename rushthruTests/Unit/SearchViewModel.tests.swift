@@ -2,29 +2,29 @@ import XCTest
 @testable import rushthru
 
 @MainActor
-final class SearchCoordinatorTests: XCTestCase {
-    private var activity: ActivityLogCoordinator!
-    private var locations: LocationCoordinator!
+final class SearchViewModelTests: XCTestCase {
+    private var activity: ActivityLogViewModel!
+    private var locations: LocationsViewModel!
     private var inventory: InventoryService!
     private var defaults: UserDefaults!
-    private var coordinator: SearchCoordinator!
+    private var coordinator: SearchViewModel!
     private var suiteName: String!
 
     override func setUp() async throws {
         try await super.setUp()
-        activity = ActivityLogCoordinator()
-        locations = LocationCoordinator(activityLogger: activity)
+        activity = ActivityLogViewModel()
+        locations = LocationsViewModel(activityLogger: activity)
         await locations.bootstrap()
         inventory = InventoryService(activityLogger: activity, locationCoordinator: locations)
         await inventory.bootstrap()
-        suiteName = "SearchCoordinatorTests.\(UUID().uuidString)"
+        suiteName = "SearchViewModelTests.\(UUID().uuidString)"
         if let suiteDefaults = UserDefaults(suiteName: suiteName) {
             defaults = suiteDefaults
             defaults.removePersistentDomain(forName: suiteName)
         } else {
             defaults = .standard
         }
-        coordinator = SearchCoordinator(inventoryService: inventory, defaults: defaults)
+        coordinator = SearchViewModel(inventoryService: inventory, defaults: defaults)
     }
 
     override func tearDown() {

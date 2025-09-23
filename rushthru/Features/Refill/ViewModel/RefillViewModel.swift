@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 @MainActor
-final class RefillService: ObservableObject {
+final class RefillViewModel: ObservableObject {
     @Published private(set) var refillItems: [InventoryItem] = []
     @Published private(set) var manualTasks: [ManualRefillTask] = []
     @Published private(set) var shelfSuggestions: [ShelfSuggestion] = []

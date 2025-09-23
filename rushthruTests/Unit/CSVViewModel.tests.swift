@@ -2,20 +2,20 @@ import XCTest
 @testable import rushthru
 
 @MainActor
-final class CSVCoordinatorTests: XCTestCase {
-    private var activity: ActivityLogCoordinator!
-    private var locations: LocationCoordinator!
+final class CSVViewModelTests: XCTestCase {
+    private var activity: ActivityLogViewModel!
+    private var locations: LocationsViewModel!
     private var inventory: InventoryService!
-    private var coordinator: CSVCoordinator!
+    private var coordinator: CSVViewModel!
 
     override func setUp() async throws {
         try await super.setUp()
-        activity = ActivityLogCoordinator()
-        locations = LocationCoordinator(activityLogger: activity)
+        activity = ActivityLogViewModel()
+        locations = LocationsViewModel(activityLogger: activity)
         await locations.bootstrap()
         inventory = InventoryService(activityLogger: activity, locationCoordinator: locations)
         await inventory.bootstrap()
-        coordinator = CSVCoordinator(inventoryService: inventory, locationCoordinator: locations, activityLogger: activity)
+        coordinator = CSVViewModel(inventoryService: inventory, locationCoordinator: locations, activityLogger: activity)
     }
 
     override func tearDown() {

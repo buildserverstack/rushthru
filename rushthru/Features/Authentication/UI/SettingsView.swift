@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @EnvironmentObject private var csv: CSVCoordinator
-    @EnvironmentObject private var activity: ActivityLogCoordinator
-    @EnvironmentObject private var locations: LocationCoordinator
+    @EnvironmentObject private var csv: CSVViewModel
+    @EnvironmentObject private var activity: ActivityLogViewModel
+    @EnvironmentObject private var locations: LocationsViewModel
     @State private var exportText: String = ""
     @State private var newStoreName: String = ""
     @State private var storeStatus: String = ""
@@ -137,7 +137,7 @@ struct SettingsView: View {
                     importText = ""
                     clearImportStatus(after: 3)
                 }
-            } catch let error as CSVCoordinator.CSVError {
+            } catch let error as CSVViewModel.CSVError {
                 switch error {
                 case .validationFailed(let issues):
                     await MainActor.run {

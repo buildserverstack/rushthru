@@ -2,20 +2,20 @@ import XCTest
 @testable import rushthru
 
 @MainActor
-final class BulkCountCoordinatorTests: XCTestCase {
-    private var activity: ActivityLogCoordinator!
-    private var locations: LocationCoordinator!
+final class BulkCountViewModelTests: XCTestCase {
+    private var activity: ActivityLogViewModel!
+    private var locations: LocationsViewModel!
     private var inventory: InventoryService!
-    private var coordinator: BulkCountCoordinator!
+    private var coordinator: BulkCountViewModel!
 
     override func setUp() async throws {
         try await super.setUp()
-        activity = ActivityLogCoordinator()
-        locations = LocationCoordinator(activityLogger: activity)
+        activity = ActivityLogViewModel()
+        locations = LocationsViewModel(activityLogger: activity)
         await locations.bootstrap()
         inventory = InventoryService(activityLogger: activity, locationCoordinator: locations)
         await inventory.bootstrap()
-        coordinator = BulkCountCoordinator(inventoryService: inventory)
+        coordinator = BulkCountViewModel(inventoryService: inventory)
     }
 
     override func tearDown() {

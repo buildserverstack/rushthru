@@ -1,7 +1,7 @@
 import Foundation
 
 @MainActor
-final class CaptureCoordinator: ObservableObject {
+final class CaptureViewModel: ObservableObject {
     struct PendingDuplicate: Identifiable, Equatable {
         let id = UUID()
         let existing: InventoryItem
@@ -42,7 +42,7 @@ final class CaptureCoordinator: ObservableObject {
         do {
             let recognizer = source == .photoLibrary ? galleryRecognizer : cameraRecognizer
             let observations: [DonutTextObservation] = try await recognizer.recognizeText(in: imageData)
-            let parsed = parse(observations: observations)
+            let parsed = autoreleasepool { parse(observations: observations) }
             lastResult = OCRResult(fields: parsed.fields)
             if let normalized = parsed.normalizedFields {
                 draftFields = normalized

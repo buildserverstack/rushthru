@@ -2,22 +2,22 @@ import XCTest
 @testable import rushthru
 
 @MainActor
-final class RefillServiceTests: XCTestCase {
-    private var activity: ActivityLogCoordinator!
-    private var locations: LocationCoordinator!
+final class RefillViewModelTests: XCTestCase {
+    private var activity: ActivityLogViewModel!
+    private var locations: LocationsViewModel!
     private var inventory: InventoryService!
     private var shelfRecognizer: ShelfRecognizerStub!
-    private var refill: RefillService!
+    private var refill: RefillViewModel!
 
     override func setUp() async throws {
         try await super.setUp()
-        activity = ActivityLogCoordinator()
-        locations = LocationCoordinator(activityLogger: activity)
+        activity = ActivityLogViewModel()
+        locations = LocationsViewModel(activityLogger: activity)
         await locations.bootstrap()
         inventory = InventoryService(activityLogger: activity, locationCoordinator: locations)
         await inventory.bootstrap()
         shelfRecognizer = ShelfRecognizerStub()
-        refill = RefillService(inventoryService: inventory, shelfRecognizer: shelfRecognizer)
+        refill = RefillViewModel(inventoryService: inventory, shelfRecognizer: shelfRecognizer)
     }
 
     override func tearDown() {

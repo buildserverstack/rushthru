@@ -2,12 +2,12 @@ import XCTest
 @testable import rushthru
 
 @MainActor
-final class ActivityLogCoordinatorTests: XCTestCase {
-    private var coordinator: ActivityLogCoordinator!
+final class ActivityLogViewModelTests: XCTestCase {
+    private var coordinator: ActivityLogViewModel!
 
     override func setUp() async throws {
         try await super.setUp()
-        coordinator = ActivityLogCoordinator()
+        coordinator = ActivityLogViewModel()
     }
 
     override func tearDown() {

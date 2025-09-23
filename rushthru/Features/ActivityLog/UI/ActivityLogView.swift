@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ActivityLogView: View {
-    @EnvironmentObject private var activity: ActivityLogCoordinator
+    @EnvironmentObject private var activity: ActivityLogViewModel
 
     var body: some View {
         List(activity.entries) { entry in

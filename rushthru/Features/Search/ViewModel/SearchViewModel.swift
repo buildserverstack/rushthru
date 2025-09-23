@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 @MainActor
-final class SearchCoordinator: ObservableObject {
+final class SearchViewModel: ObservableObject {
     @Published private(set) var results: [InventoryItem] = []
     @Published private(set) var history: [SearchHistoryEntry] = []
     @Published var query: String = "" {

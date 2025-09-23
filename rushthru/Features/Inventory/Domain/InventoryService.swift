@@ -11,8 +11,8 @@ final class InventoryService: ObservableObject {
     @Published private(set) var customTypeOptions: [String] = []
     @Published private(set) var customSizeOptions: [Int] = []
 
-    private let activityLogger: ActivityLogCoordinator
-    private let locationCoordinator: LocationCoordinator
+    private let activityLogger: ActivityLogViewModel
+    private let locationCoordinator: LocationsViewModel
     private var cancellables = Set<AnyCancellable>()
     private var storage: [UUID: [InventoryItem]] = [:]
     private var customTypeStore: [String] = []
@@ -23,7 +23,7 @@ final class InventoryService: ObservableObject {
         return encoder
     }()
 
-    init(activityLogger: ActivityLogCoordinator, locationCoordinator: LocationCoordinator) {
+    init(activityLogger: ActivityLogViewModel, locationCoordinator: LocationsViewModel) {
         self.activityLogger = activityLogger
         self.locationCoordinator = locationCoordinator
         self.selectedStoreID = locationCoordinator.selectedStoreID

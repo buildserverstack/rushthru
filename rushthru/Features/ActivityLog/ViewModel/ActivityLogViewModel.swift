@@ -1,7 +1,7 @@
 import Foundation
 
 @MainActor
-final class ActivityLogCoordinator: ObservableObject {
+final class ActivityLogViewModel: ObservableObject {
     @Published private(set) var entries: [ActivityLogEntry] = []
 
     func bootstrap() async {
