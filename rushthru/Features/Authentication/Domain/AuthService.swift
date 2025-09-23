@@ -16,6 +16,7 @@ final class AuthService: ObservableObject {
 
     @Published private(set) var state: LockState = .locked
     @Published private(set) var isLocked: Bool = true
+    @Published private(set) var hasPIN: Bool = false
     @Published private(set) var failedAttempts: Int = 0
     @Published private(set) var cooldownUntil: Date?
     @Published var autoLockMinutes: Int = 5
@@ -29,9 +30,11 @@ final class AuthService: ObservableObject {
         if pinHash == nil {
             state = .unlocked
             isLocked = false
+            hasPIN = false
         } else {
             state = .locked
             isLocked = true
+            hasPIN = true
         }
     }
 
@@ -41,6 +44,8 @@ final class AuthService: ObservableObject {
         pinSalt = salt
         failedAttempts = 0
         cooldownUntil = nil
+        hasPIN = true
+        lock()
     }
 
     func verify(pin: String) async throws {
@@ -62,6 +67,7 @@ final class AuthService: ObservableObject {
         cooldownUntil = nil
         state = .unlocked
         isLocked = false
+        hasPIN = true
     }
 
     func lock() {
@@ -76,6 +82,16 @@ final class AuthService: ObservableObject {
 
     func recordBackgroundLock() {
         lock()
+    }
+
+    func clearPIN() {
+        pinHash = nil
+        pinSalt = nil
+        failedAttempts = 0
+        cooldownUntil = nil
+        state = .unlocked
+        isLocked = false
+        hasPIN = false
     }
 
     func shouldAutoLock(lastInteraction: Date) -> Bool {

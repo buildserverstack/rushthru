@@ -19,10 +19,13 @@ final class AuthServiceTests: XCTestCase {
         await auth.bootstrap()
         XCTAssertFalse(auth.isLocked)
         XCTAssertEqual(auth.state, .unlocked)
+        XCTAssertFalse(auth.hasPIN)
     }
 
     func testVerifySetsAndValidatesPin() async throws {
         auth.setPIN("1234")
+        XCTAssertTrue(auth.hasPIN)
+        XCTAssertTrue(auth.isLocked)
         XCTAssertThrowsError(try await auth.verify(pin: "0000"))
         XCTAssertEqual(auth.failedAttempts, 1)
 
@@ -59,5 +62,14 @@ final class AuthServiceTests: XCTestCase {
 
         let stale = Date().addingTimeInterval(-120)
         XCTAssertTrue(auth.shouldAutoLock(lastInteraction: stale))
+    }
+
+    func testClearPinRemovesLock() async {
+        auth.setPIN("1357")
+        auth.clearPIN()
+        XCTAssertFalse(auth.hasPIN)
+        XCTAssertFalse(auth.isLocked)
+        XCTAssertEqual(auth.failedAttempts, 0)
+        XCTAssertNil(auth.cooldownUntil)
     }
 }

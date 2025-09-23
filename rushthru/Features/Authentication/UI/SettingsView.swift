@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @EnvironmentObject private var auth: AuthService
     @EnvironmentObject private var csv: CSVViewModel
     @EnvironmentObject private var activity: ActivityLogViewModel
     @EnvironmentObject private var locations: LocationsViewModel
@@ -16,10 +17,61 @@ struct SettingsView: View {
     @State private var importStatus: String = ""
     @State private var dataStatus: String = ""
     @State private var showClearAllAlert = false
+    @State private var showRemovePINAlert = false
+    @State private var newPIN: String = ""
+    @State private var confirmPIN: String = ""
+    @State private var pinStatus: String = ""
 
     var body: some View {
         NavigationStack {
             Form {
+                Section("Security") {
+                    if auth.hasPIN {
+                        Label("Store PIN enabled", systemImage: "lock.fill")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Label("Store PIN not set", systemImage: "lock.open")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    SecureField("New PIN", text: $newPIN)
+                        .keyboardType(.numberPad)
+                        .textContentType(.oneTimeCode)
+                        .onChange(of: newPIN) { _, value in
+                            sanitizePIN(&newPIN, from: value)
+                        }
+
+                    SecureField("Confirm PIN", text: $confirmPIN)
+                        .keyboardType(.numberPad)
+                        .textContentType(.oneTimeCode)
+                        .onChange(of: confirmPIN) { _, value in
+                            sanitizePIN(&confirmPIN, from: value)
+                        }
+
+                    Button("Save PIN") {
+                        setPIN()
+                    }
+                    .disabled(!canSavePIN)
+
+                    if auth.hasPIN {
+                        Button("Lock Now") {
+                            auth.lock()
+                            pinStatus = "App locked. Enter the new PIN to continue."
+                            clearPinStatus(after: 3)
+                        }
+
+                        Button("Remove PIN", role: .destructive) {
+                            showRemovePINAlert = true
+                        }
+                    }
+
+                    if !pinStatus.isEmpty {
+                        Text(pinStatus)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 Section("Store Filter") {
                     Picker("Active Store", selection: Binding(
                         get: { locations.selectedStoreID },
@@ -141,6 +193,14 @@ struct SettingsView: View {
             } message: {
                 Text("This removes all inventory, locations, refill tasks, activity logs, and history. This action cannot be undone.")
             }
+            .alert("Remove PIN?", isPresented: $showRemovePINAlert) {
+                Button("Remove PIN", role: .destructive) {
+                    removePIN()
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Disabling the PIN lets anyone with the device open ShelfTrack.")
+            }
         }
     }
 
@@ -213,12 +273,52 @@ struct SettingsView: View {
         search.clearAll()
         csv.resetState()
         activity.clearAll()
+        auth.clearPIN()
+        newPIN = ""
+        confirmPIN = ""
+        pinStatus = ""
         exportText = ""
         importText = ""
         importStatus = ""
         storeStatus = ""
         dataStatus = "All app data has been cleared."
         clearDataStatus(after: 3)
+    }
+
+    private var canSavePIN: Bool {
+        newPIN.count >= 4 && newPIN == confirmPIN
+    }
+
+    private func sanitizePIN(_ target: inout String, from value: String) {
+        let filtered = value.filter { $0.isNumber }
+        if filtered.count > 6 {
+            target = String(filtered.prefix(6))
+        } else {
+            target = String(filtered)
+        }
+    }
+
+    private func setPIN() {
+        guard canSavePIN else { return }
+        auth.setPIN(newPIN)
+        pinStatus = "PIN saved. The app is now locked."
+        newPIN = ""
+        confirmPIN = ""
+        clearPinStatus(after: 3)
+    }
+
+    private func removePIN() {
+        auth.clearPIN()
+        pinStatus = "PIN removed."
+        newPIN = ""
+        confirmPIN = ""
+        clearPinStatus(after: 3)
+    }
+
+    private func clearPinStatus(after delay: TimeInterval) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            pinStatus = ""
+        }
     }
 }
 
