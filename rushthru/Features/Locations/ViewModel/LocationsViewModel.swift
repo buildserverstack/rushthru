@@ -68,4 +68,10 @@ final class LocationsViewModel: ObservableObject {
     var stores: [LocationNode] {
         locations.filter { $0.kind == .store }
     }
+
+    func clearAll() {
+        locations.removeAll()
+        selectedStoreID = nil
+        activityLogger.log(action: .edit, entity: .location, entityID: nil, before: nil, after: "Cleared all locations")
+    }
 }

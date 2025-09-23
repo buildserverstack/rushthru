@@ -4,46 +4,56 @@ struct SettingsView: View {
     @EnvironmentObject private var csv: CSVViewModel
     @EnvironmentObject private var activity: ActivityLogViewModel
     @EnvironmentObject private var locations: LocationsViewModel
+    @EnvironmentObject private var inventory: InventoryService
+    @EnvironmentObject private var refill: RefillViewModel
+    @EnvironmentObject private var search: SearchViewModel
+    @EnvironmentObject private var capture: CaptureViewModel
+    @EnvironmentObject private var bulkCounts: BulkCountViewModel
     @State private var exportText: String = ""
     @State private var newStoreName: String = ""
     @State private var storeStatus: String = ""
     @State private var importText: String = ""
     @State private var importStatus: String = ""
+    @State private var dataStatus: String = ""
+    @State private var showClearAllAlert = false
 
     var body: some View {
         NavigationStack {
             Form {
-                if !locations.stores.isEmpty {
-                    Section("Store Filter") {
-                        Picker("Active Store", selection: Binding(
-                            get: { locations.selectedStoreID },
-                            set: { locations.selectedStoreID = $0 }
-                        )) {
-                            Text("All Stores")
-                                .tag(UUID?.none)
-                            ForEach(locations.stores) { store in
-                                Text(store.name)
-                                    .tag(Optional(store.id))
-                            }
+                Section("Store Filter") {
+                    Picker("Active Store", selection: Binding(
+                        get: { locations.selectedStoreID },
+                        set: { locations.selectedStoreID = $0 }
+                    )) {
+                        Text("All Stores")
+                            .tag(UUID?.none)
+                        ForEach(locations.stores) { store in
+                            Text(store.name)
+                                .tag(Optional(store.id))
                         }
-                        .pickerStyle(.menu)
-                        TextField("New store name", text: $newStoreName)
-                        Button("Add Store") {
-                            addStore()
+                    }
+                    .pickerStyle(.menu)
+                    TextField("New store name", text: $newStoreName)
+                    Button("Add Store") {
+                        addStore()
+                    }
+                    .disabled(newStoreName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    if locations.selectedStoreID != nil, !locations.stores.isEmpty {
+                        Button("Show All Stores") {
+                            locations.selectedStoreID = nil
+                            storeStatus = "Showing all stores"
+                            clearStoreStatus(after: 2)
                         }
-                        .disabled(newStoreName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        if locations.selectedStoreID != nil {
-                            Button("Show All Stores") {
-                                locations.selectedStoreID = nil
-                                storeStatus = "Showing all stores"
-                                clearStoreStatus(after: 2)
-                            }
-                        }
-                        if !storeStatus.isEmpty {
-                            Text(storeStatus)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
+                    }
+                    if locations.stores.isEmpty {
+                        Text("No stores yet. Add one to start tracking inventory.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    if !storeStatus.isEmpty {
+                        Text(storeStatus)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
                 }
 
@@ -108,8 +118,29 @@ struct SettingsView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+
+                Section("Data Management") {
+                    Button(role: .destructive) {
+                        showClearAllAlert = true
+                    } label: {
+                        Label("Clear All Data", systemImage: "trash")
+                    }
+                    if !dataStatus.isEmpty {
+                        Text(dataStatus)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
             .navigationTitle("Settings")
+            .alert("Erase all data?", isPresented: $showClearAllAlert) {
+                Button("Delete Everything", role: .destructive) {
+                    clearAllData()
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This removes all inventory, locations, refill tasks, activity logs, and history. This action cannot be undone.")
+            }
         }
     }
 
@@ -165,13 +196,42 @@ struct SettingsView: View {
             importStatus = ""
         }
     }
+
+    private func clearDataStatus(after delay: TimeInterval) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            dataStatus = ""
+        }
+    }
+
+    @MainActor
+    private func clearAllData() {
+        capture.resetDraft()
+        bulkCounts.reset()
+        refill.clearAll()
+        inventory.clearAll()
+        locations.clearAll()
+        search.clearAll()
+        csv.resetState()
+        activity.clearAll()
+        exportText = ""
+        importText = ""
+        importStatus = ""
+        storeStatus = ""
+        dataStatus = "All app data has been cleared."
+        clearDataStatus(after: 3)
+    }
 }
 
 #Preview {
     let environment = AppEnvironment(preview: true)
     SettingsView()
+        .environmentObject(environment.inventory)
         .environmentObject(environment.auth)
         .environmentObject(environment.csv)
         .environmentObject(environment.activity)
         .environmentObject(environment.locations)
+        .environmentObject(environment.refill)
+        .environmentObject(environment.search)
+        .environmentObject(environment.capture)
+        .environmentObject(environment.bulkCounts)
 }

@@ -191,6 +191,15 @@ final class RefillViewModel: ObservableObject {
         shelfScanError = nil
     }
 
+    func clearAll() {
+        refillItems.removeAll()
+        manualTasks.removeAll()
+        manualTaskStorage.removeAll()
+        shelfSuggestions.removeAll()
+        shelfScanError = nil
+        isScanningShelf = false
+    }
+
     private func updateState(with items: [InventoryItem]) {
         refillItems = items
             .filter { $0.isBelowMinimum }

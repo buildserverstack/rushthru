@@ -3,9 +3,51 @@ import Foundation
 @MainActor
 final class CaptureViewModel: ObservableObject {
     struct PendingDuplicate: Identifiable, Equatable {
+        enum MatchType: Equatable {
+            case identity
+            case name
+        }
+
         let id = UUID()
         let existing: InventoryItem
         let proposed: NormalizedFields
+        let matchType: MatchType
+
+        var alertTitle: String {
+            switch matchType {
+            case .identity:
+                return "Update existing item?"
+            case .name:
+                return "Update matching item?"
+            }
+        }
+
+        var primaryActionTitle: String {
+            switch matchType {
+            case .identity:
+                return "Update Stock"
+            case .name:
+                return "Update Item"
+            }
+        }
+
+        var successMessage: String {
+            switch matchType {
+            case .identity:
+                return "Updated stock for \(existing.displayName)."
+            case .name:
+                return "Updated \(existing.displayName) with new details."
+            }
+        }
+
+        var alertMessage: String {
+            switch matchType {
+            case .identity:
+                return "“\(existing.displayName)” already exists with \(existing.quantity) in stock. Update the existing count by \(proposed.initialQuantity)?"
+            case .name:
+                return "“\(existing.displayName)” already exists. Replace its size with \(proposed.sizeML) mL and set the quantity to \(proposed.initialQuantity)?"
+            }
+        }
     }
 
     enum Source {
@@ -59,7 +101,12 @@ final class CaptureViewModel: ObservableObject {
         errorMessage = nil
 
         if let match = inventoryService.existingItem(matching: fields.identity) {
-            pendingDuplicate = PendingDuplicate(existing: match, proposed: fields)
+            pendingDuplicate = PendingDuplicate(existing: match, proposed: fields, matchType: .identity)
+            return
+        }
+
+        if let nameMatch = inventoryService.item(matchingName: fields.name, in: inventoryService.selectedStoreID) {
+            pendingDuplicate = PendingDuplicate(existing: nameMatch, proposed: fields, matchType: .name)
             return
         }
 
@@ -69,7 +116,25 @@ final class CaptureViewModel: ObservableObject {
     func acceptDuplicateUpdate() async {
         guard let pendingDuplicate else { return }
         self.pendingDuplicate = nil
-        await inventoryService.incrementQuantity(itemID: pendingDuplicate.existing.id, delta: pendingDuplicate.proposed.initialQuantity)
+        switch pendingDuplicate.matchType {
+        case .identity:
+            await inventoryService.incrementQuantity(itemID: pendingDuplicate.existing.id, delta: pendingDuplicate.proposed.initialQuantity)
+        case .name:
+            var updated = pendingDuplicate.existing
+            let proposed = pendingDuplicate.proposed
+            updated.name = proposed.name
+            updated.subName = proposed.subName
+            updated.type = proposed.type
+            updated.sizeML = proposed.sizeML
+            updated.quantity = max(0, proposed.initialQuantity)
+            updated.minimum = max(0, proposed.minimum)
+            updated.aisle = proposed.aisle
+            updated.shelf = proposed.shelf
+            updated.row = proposed.row
+            updated.column = proposed.column
+            updated.updatedAt = Date()
+            await inventoryService.update(item: updated)
+        }
         resetDraft()
     }
 

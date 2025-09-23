@@ -70,6 +70,16 @@ final class InventoryService: ObservableObject {
         items.first { $0.normalizedIdentity == identity }
     }
 
+    func item(matchingName name: String, in storeID: UUID?) -> InventoryItem? {
+        let normalized = ItemIdentity.normalize(name)
+        if let storeID, let storeItems = storage[storeID] {
+            if let match = storeItems.first(where: { ItemIdentity.normalize($0.name) == normalized }) {
+                return match
+            }
+        }
+        return items.first { ItemIdentity.normalize($0.name) == normalized }
+    }
+
     func replaceAll(with newItems: [InventoryItem]) async {
         guard let storeID = ensureStoreID() else { return }
         let reassigned = newItems.map { item -> InventoryItem in
@@ -196,6 +206,19 @@ final class InventoryService: ObservableObject {
 
     func ensureActiveStoreID() -> UUID? {
         ensureStoreID()
+    }
+
+    func clearAll() {
+        storage.removeAll()
+        items.removeAll()
+        customTypeStore.removeAll()
+        customSizeSet.removeAll()
+        availableTypes = InventoryItem.defaultTypes
+        availableSizes = InventoryItem.defaultSizes.sorted()
+        customTypeOptions = []
+        customSizeOptions = []
+        lastUpdated = Date()
+        activityLogger.log(action: .edit, entity: .batch, entityID: nil, before: nil, after: "Cleared all inventory data")
     }
 
     private func reloadItems(for storeID: UUID?) {

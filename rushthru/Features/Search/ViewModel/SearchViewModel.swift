@@ -95,6 +95,15 @@ final class SearchViewModel: ObservableObject {
         persistHistory()
     }
 
+    func clearAll() {
+        history = []
+        results = []
+        query = ""
+        selectedType = nil
+        selectedSize = nil
+        persistHistory()
+    }
+
     private func loadHistory() {
         guard let data = defaults.data(forKey: historyKey) else { return }
         if let saved = try? Self.historyDecoder.decode([SearchHistoryEntry].self, from: data) {

@@ -44,12 +44,12 @@ struct CaptureView: View {
             .alert(confirmationMessage, isPresented: $showConfirmation) {
                 Button("OK", role: .cancel) { }
             }
-            .alert("Update existing item?", isPresented: $showDuplicatePrompt, presenting: duplicateContext) { context in
-                Button("Update Stock") {
+            .alert(duplicateContext?.alertTitle ?? "", isPresented: $showDuplicatePrompt, presenting: duplicateContext) { context in
+                Button(context.primaryActionTitle) {
                     Task {
                         await capture.acceptDuplicateUpdate()
                         await MainActor.run {
-                            confirmationMessage = "Updated stock for \(context.existing.displayName)."
+                            confirmationMessage = context.successMessage
                             showConfirmation = true
                         }
                     }
@@ -65,7 +65,7 @@ struct CaptureView: View {
                 }
                 Button("Cancel", role: .cancel) { }
             } message: { context in
-                Text("“\(context.existing.displayName)” already exists with \(context.existing.quantity) in stock. Update the existing count by \(context.proposed.initialQuantity)?")
+                Text(context.alertMessage)
             }
             #if canImport(UIKit)
             .sheet(item: $activeImageSource) { source in

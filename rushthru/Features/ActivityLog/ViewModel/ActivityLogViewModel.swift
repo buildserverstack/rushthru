@@ -16,4 +16,8 @@ final class ActivityLogViewModel: ObservableObject {
     func compact(olderThan date: Date) {
         entries.removeAll { $0.createdAt < date }
     }
+
+    func clearAll() {
+        entries.removeAll()
+    }
 }

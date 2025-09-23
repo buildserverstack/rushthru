@@ -90,4 +90,9 @@ final class CSVViewModel: ObservableObject {
         lastImportSummary = CSVImportSummary(importedItems: newItems.count, importedLocations: 0, warnings: [])
         activityLogger.log(action: .import, entity: .batch, entityID: nil, before: nil, after: "Imported \(newItems.count) items")
     }
+
+    func resetState() {
+        lastImportSummary = nil
+        lastValidationIssues = []
+    }
 }
