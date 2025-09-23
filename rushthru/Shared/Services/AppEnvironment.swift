@@ -3,6 +3,66 @@ import Combine
 
 @MainActor
 final class AppEnvironment: ObservableObject {
+    @MainActor
+    struct Dependencies {
+        let database: DatabaseManager
+        let auth: AuthService
+        let inventory: InventoryService
+        let refill: RefillViewModel
+        let search: SearchViewModel
+        let locations: LocationsViewModel
+        let csv: CSVViewModel
+        let activity: ActivityLogViewModel
+        let capture: CaptureViewModel
+        let bulkCounts: BulkCountViewModel
+
+        static func standard() -> Dependencies {
+            let database = DatabaseManager.shared
+            let activityLogger = ActivityLogViewModel()
+            let locationCoordinator = LocationsViewModel(activityLogger: activityLogger)
+            let inventoryService = InventoryService(activityLogger: activityLogger, locationCoordinator: locationCoordinator)
+
+            #if canImport(Vision)
+            let shelfRecognizer: ShelfRecognizing = DinoV3ShelfRecognizer()
+            #else
+            let shelfRecognizer: ShelfRecognizing = NullShelfRecognizer()
+            #endif
+            let refillViewModel = RefillViewModel(inventoryService: inventoryService, shelfRecognizer: shelfRecognizer)
+            let searchViewModel = SearchViewModel(inventoryService: inventoryService)
+            let csvViewModel = CSVViewModel(
+                inventoryService: inventoryService,
+                locationCoordinator: locationCoordinator,
+                activityLogger: activityLogger
+            )
+
+            #if canImport(Vision)
+            let cameraRecognizer: DonutTextRecognizing = DonutSmallTextRecognizer()
+            #else
+            let cameraRecognizer: DonutTextRecognizing = NullDonutTextRecognizer()
+            #endif
+            let galleryRecognizer: DonutTextRecognizing = MLKitTextRecognizerAdapter(fallback: cameraRecognizer)
+            let captureViewModel = CaptureViewModel(
+                inventoryService: inventoryService,
+                cameraRecognizer: cameraRecognizer,
+                galleryRecognizer: galleryRecognizer
+            )
+            let bulkCountsViewModel = BulkCountViewModel(inventoryService: inventoryService)
+
+            return Dependencies(
+                database: database,
+                auth: AuthService(),
+                inventory: inventoryService,
+                refill: refillViewModel,
+                search: searchViewModel,
+                locations: locationCoordinator,
+                csv: csvViewModel,
+                activity: activityLogger,
+                capture: captureViewModel,
+                bulkCounts: bulkCountsViewModel
+            )
+        }
+    }
+
     let database: DatabaseManager
     let auth: AuthService
     let inventory: InventoryService
@@ -16,36 +76,17 @@ final class AppEnvironment: ObservableObject {
 
     @Published private(set) var isReady = false
 
-    init(preview: Bool = false) {
-        self.database = DatabaseManager.shared
-        let activityLogger = ActivityLogViewModel()
-        let locationCoordinator = LocationsViewModel(activityLogger: activityLogger)
-        let inventoryService = InventoryService(activityLogger: activityLogger, locationCoordinator: locationCoordinator)
-        self.inventory = inventoryService
-        self.locations = locationCoordinator
-        self.activity = activityLogger
-
-        #if canImport(Vision)
-        let shelfRecognizer: ShelfRecognizing = DinoV3ShelfRecognizer()
-        #else
-        let shelfRecognizer: ShelfRecognizing = NullShelfRecognizer()
-        #endif
-        self.refill = RefillViewModel(inventoryService: inventoryService, shelfRecognizer: shelfRecognizer)
-        self.search = SearchViewModel(inventoryService: inventoryService)
-        self.csv = CSVViewModel(inventoryService: inventoryService, locationCoordinator: locationCoordinator, activityLogger: activityLogger)
-        #if canImport(Vision)
-        let cameraRecognizer: DonutTextRecognizing = DonutSmallTextRecognizer()
-        #else
-        let cameraRecognizer: DonutTextRecognizing = NullDonutTextRecognizer()
-        #endif
-        let galleryRecognizer: DonutTextRecognizing = MLKitTextRecognizerAdapter(fallback: cameraRecognizer)
-        self.capture = CaptureViewModel(
-            inventoryService: inventoryService,
-            cameraRecognizer: cameraRecognizer,
-            galleryRecognizer: galleryRecognizer
-        )
-        self.bulkCounts = BulkCountViewModel(inventoryService: inventoryService)
-        self.auth = AuthService()
+    init(preview: Bool = false, dependencies: Dependencies = .standard()) {
+        self.database = dependencies.database
+        self.auth = dependencies.auth
+        self.inventory = dependencies.inventory
+        self.refill = dependencies.refill
+        self.search = dependencies.search
+        self.locations = dependencies.locations
+        self.csv = dependencies.csv
+        self.activity = dependencies.activity
+        self.capture = dependencies.capture
+        self.bulkCounts = dependencies.bulkCounts
 
         if preview {
             Task {
