@@ -27,17 +27,17 @@ struct CaptureView: View {
             .onAppear {
                 editableFields = EditableFields(from: capture.draftFields)
             }
-            .onChange(of: capture.draftFields) { newValue in
+            .onChange(of: capture.draftFields) { _, newValue in
                 editableFields = EditableFields(from: newValue)
             }
-            .onChange(of: capture.pendingDuplicate) { newValue in
+            .onChange(of: capture.pendingDuplicate) { _, newValue in
                 duplicateContext = newValue
                 showDuplicatePrompt = newValue != nil
                 if newValue != nil {
                     HapticsManager.shared.playWarning()
                 }
             }
-            .onChange(of: capture.errorMessage) { newValue in
+            .onChange(of: capture.errorMessage) { _, newValue in
                 guard newValue != nil else { return }
                 HapticsManager.shared.playError()
             }
@@ -595,7 +595,7 @@ private enum ImagePickerSource: Identifiable {
         }
     }
 
-    var isAvailable: Bool {
+    @MainActor var isAvailable: Bool {
         UIImagePickerController.isSourceTypeAvailable(sourceType)
     }
 

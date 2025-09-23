@@ -2,7 +2,7 @@ import Foundation
 
 /// Represents the application bootstrap lifecycle. Used to drive developer-only
 /// diagnostics UI as well as feature gating during initialization.
-public enum BootState: Equatable {
+public enum BootState: Equatable, Sendable {
     case coldStart
     case running
     case degraded(reason: String? = nil)

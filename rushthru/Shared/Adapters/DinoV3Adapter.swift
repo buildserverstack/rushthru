@@ -1,10 +1,10 @@
 import Foundation
 
 #if canImport(CoreML)
-import CoreML
+@preconcurrency import CoreML
 #endif
 #if canImport(Vision)
-import Vision
+@preconcurrency import Vision
 #endif
 #if canImport(MLKitTextRecognition) && canImport(MLKitVision) && canImport(UIKit)
 import MLKitTextRecognition
@@ -26,7 +26,7 @@ public struct DonutTextObservation: Sendable, Equatable {
     }
 }
 
-public protocol DonutTextRecognizing: Sendable {
+public protocol DonutTextRecognizing {
     func recognizeText(in imageData: Data) async throws -> [DonutTextObservation]
 }
 
@@ -142,7 +142,7 @@ public final class MLKitTextRecognizerAdapter: DonutTextRecognizing {
 }
 #endif
 
-public struct ShelfRecognitionCandidate: Identifiable, Equatable {
+public struct ShelfRecognitionCandidate: Identifiable, Equatable, Sendable {
     public let id: UUID
     public let itemID: UUID?
     public let name: String
@@ -160,7 +160,7 @@ public struct ShelfRecognitionCandidate: Identifiable, Equatable {
     }
 }
 
-protocol ShelfRecognizing: Sendable {
+protocol ShelfRecognizing {
     func analyzeShelf(imageData: Data, inventory: [ShelfInventorySnapshot]) async throws -> [ShelfRecognitionCandidate]
 }
 

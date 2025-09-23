@@ -7,6 +7,7 @@ import GRDB
 /// Provides a unified interface for interacting with the on-device SQLite database.
 /// The production build links against GRDB. For unit testing or Linux builds the
 /// fallback in-memory store keeps the code compiling without GRDB.
+@MainActor
 final class DatabaseManager {
     static let shared = DatabaseManager()
 

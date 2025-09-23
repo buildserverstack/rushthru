@@ -117,7 +117,7 @@ struct RefillView: View {
                     }
                 }
             }
-            .onChange(of: refill.shelfScanError) { error in
+            .onChange(of: refill.shelfScanError) { _, error in
                 guard error != nil else { return }
                 HapticsManager.shared.playError()
             }
@@ -380,12 +380,12 @@ struct RefillShelfScannerView: View {
                 }
             }
         }
-        .onChange(of: pickerItem) { newValue in
+        .onChange(of: pickerItem) { _, newValue in
             guard let newValue else { return }
             HapticsManager.shared.playSelectionChanged()
             loadPhoto(from: newValue)
         }
-        .onChange(of: refill.shelfSuggestions) { suggestions in
+        .onChange(of: refill.shelfSuggestions) { _, suggestions in
             if !suggestions.isEmpty && !refill.isScanningShelf {
                 HapticsManager.shared.playSuccess()
                 dismiss()

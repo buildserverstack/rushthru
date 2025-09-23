@@ -83,14 +83,14 @@ struct AppLockView: View {
         .onAppear {
             lastInteraction = Date()
         }
-        .onChange(of: viewModel.errorMessage) { newValue in
+        .onChange(of: viewModel.errorMessage) { _, newValue in
             guard newValue != nil else { return }
             withAnimation(.easeInOut(duration: DesignTokens.Motion.fast)) {
                 shakeTrigger += 1
             }
             HapticsManager.shared.playError()
         }
-        .onChange(of: viewModel.state) { newState in
+        .onChange(of: viewModel.state) { _, newState in
             if newState == .unlocked {
                 HapticsManager.shared.playSuccess()
             }

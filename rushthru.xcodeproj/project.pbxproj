@@ -54,9 +54,11 @@
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		D9B59C382E790A7500BC4F5A /* Exceptions for "rushthru" folder in "rushthru" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
+                        membershipExceptions = (
+                                Info.plist,
+                                LaunchScreen.storyboard,
+                                PrivacyInfo.xcprivacy,
+                        );
 			target = D9B59C112E790A7400BC4F5A /* rushthru */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */

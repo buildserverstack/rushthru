@@ -1,13 +1,13 @@
 import Foundation
 
 #if canImport(AVFoundation)
-import AVFoundation
+@preconcurrency import AVFoundation
 #endif
 
 /// Abstracts camera session management so the capture feature can be tested without
 /// touching AVFoundation in-process. The concrete implementation is injected at the
 /// app level and uses the system camera APIs on device builds.
-public protocol CameraSessionManaging: Sendable {
+public protocol CameraSessionManaging {
     func startSession() async
     func stopSession()
     func setTorch(enabled: Bool) async throws

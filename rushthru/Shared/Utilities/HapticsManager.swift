@@ -3,6 +3,7 @@ import Foundation
 import UIKit
 #endif
 
+@MainActor
 final class HapticsManager {
     static let shared = HapticsManager()
 
