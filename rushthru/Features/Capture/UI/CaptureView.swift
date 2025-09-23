@@ -189,7 +189,7 @@ struct CaptureView: View {
                 Text("Scan a label to see suggested fields.")
                     .foregroundStyle(.secondary)
             } else {
-                Text("Tap a suggestion to fill a field.")
+                Text("Tap suggestions to add them to a field. You can pick more than one for names.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
@@ -304,17 +304,46 @@ struct CaptureView: View {
     }
 
     private func options(for fieldType: OCRCandidateField.FieldType) -> [OCRCandidateField] {
-        capture.lastResult.fields
+        var ocrOptions = capture.lastResult.fields
             .filter { $0.type == fieldType }
             .sorted { $0.confidence > $1.confidence }
+
+        if fieldType == .name {
+            let seeds = ([editableFields.name] + ocrOptions.map { $0.value })
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            let databaseSuggestions = nameSuggestions(from: seeds)
+                .filter { suggestion in
+                    !ocrOptions.contains { existing in
+                        existing.value.caseInsensitiveCompare(suggestion) == .orderedSame
+                    }
+                }
+                .map { suggestion in
+                    OCRCandidateField(type: .name, value: suggestion, confidence: 1)
+                }
+
+            ocrOptions.append(contentsOf: databaseSuggestions)
+        }
+
+        return ocrOptions
     }
 
     private func apply(_ candidate: OCRCandidateField) {
         switch candidate.type {
         case .name:
-            editableFields.name = candidate.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmed = candidate.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            if editableFields.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                editableFields.name = trimmed
+            } else if !contains(candidate: trimmed, in: editableFields.name) {
+                editableFields.name = editableFields.name.appendingSpacingIfNeeded() + trimmed
+            }
         case .subName:
-            editableFields.subName = candidate.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmed = candidate.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            if editableFields.subName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                editableFields.subName = trimmed
+            } else if !contains(candidate: trimmed, in: editableFields.subName) {
+                editableFields.subName = editableFields.subName.appendingSpacingIfNeeded() + trimmed
+            }
         case .type:
             if let matchedType = normalizedType(from: candidate.value) {
                 editableFields.type = matchedType
@@ -329,9 +358,9 @@ struct CaptureView: View {
     private func isCandidateSelected(_ candidate: OCRCandidateField) -> Bool {
         switch candidate.type {
         case .name:
-            return compare(candidate.value, editableFields.name)
+            return contains(candidate: candidate.value, in: editableFields.name)
         case .subName:
-            return compare(candidate.value, editableFields.subName)
+            return contains(candidate: candidate.value, in: editableFields.subName)
         case .type:
             guard let matchedType = normalizedType(from: candidate.value) else { return false }
             return editableFields.type == matchedType
@@ -341,9 +370,41 @@ struct CaptureView: View {
         }
     }
 
-    private func compare(_ lhs: String, _ rhs: String) -> Bool {
-        lhs.trimmingCharacters(in: .whitespacesAndNewlines)
-            .caseInsensitiveCompare(rhs.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame
+    private func contains(candidate: String, in field: String) -> Bool {
+        let trimmedCandidate = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedCandidate.isEmpty else { return false }
+        return field
+            .folding(options: .diacriticInsensitive, locale: .current)
+            .lowercased()
+            .contains(trimmedCandidate
+                .folding(options: .diacriticInsensitive, locale: .current)
+                .lowercased())
+    }
+
+    private func nameSuggestions(from seeds: [String], limit: Int = 6) -> [String] {
+        guard !seeds.isEmpty else { return [] }
+        var seen = Set<String>()
+        var results: [String] = []
+        let normalizedSeeds = seeds.map { seed -> String in
+            seed.folding(options: .diacriticInsensitive, locale: .current)
+                .lowercased()
+        }
+        .filter { !$0.isEmpty }
+
+        guard !normalizedSeeds.isEmpty else { return [] }
+
+        for item in inventory.items {
+            let candidate = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !candidate.isEmpty else { continue }
+            let lowered = candidate.folding(options: .diacriticInsensitive, locale: .current).lowercased()
+            guard normalizedSeeds.contains(where: { lowered.contains($0) }) else { continue }
+            if seen.insert(lowered).inserted {
+                results.append(candidate)
+            }
+            if results.count >= limit { break }
+        }
+
+        return results
     }
 
     private func normalizedType(from value: String) -> String? {
@@ -468,6 +529,14 @@ private struct EditableFields {
         .environmentObject(environment.capture)
         .environmentObject(environment.inventory)
         .environmentObject(environment.locations)
+}
+
+private extension String {
+    func appendingSpacingIfNeeded() -> String {
+        guard !isEmpty else { return self }
+        if let lastCharacter = last, lastCharacter.isWhitespace { return self }
+        return self + " "
+    }
 }
 
 #if canImport(UIKit)
