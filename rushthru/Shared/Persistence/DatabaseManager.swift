@@ -14,7 +14,9 @@ final class DatabaseManager {
     #if canImport(GRDB)
     let dbQueue: DatabaseWriter
     #else
-    private var inMemorySettings: AppSettings = .initial
+    private static let settingsKey = "app_settings"
+    private let defaults: UserDefaults
+    private var cachedSettings: AppSettings
     #endif
 
     init() {
@@ -31,6 +33,15 @@ final class DatabaseManager {
         }
         dbQueue = try! DatabaseQueue(path: dbURL.path, configuration: configuration)
         try? migrator.migrate(dbQueue)
+        #else
+        let defaults = UserDefaults(suiteName: "com.shelftrack.settings") ?? .standard
+        self.defaults = defaults
+        if let data = defaults.data(forKey: Self.settingsKey),
+           let decoded = try? JSONDecoder().decode(AppSettings.self, from: data) {
+            self.cachedSettings = decoded
+        } else {
+            self.cachedSettings = .initial
+        }
         #endif
     }
 
@@ -149,7 +160,7 @@ final class DatabaseManager {
             return AppSettings.initial
         }
         #else
-        return inMemorySettings
+        return cachedSettings
         #endif
     }
 
@@ -182,13 +193,17 @@ final class DatabaseManager {
             // In production we might surface diagnostics; here we silently ignore to keep the app running.
         }
         #else
-        inMemorySettings = settings
+        cachedSettings = settings
+        if let data = try? JSONEncoder().encode(settings) {
+            defaults.set(data, forKey: Self.settingsKey)
+        }
         #endif
     }
 
     #if !canImport(GRDB)
     func resetForTesting() {
-        inMemorySettings = .initial
+        cachedSettings = .initial
+        defaults.removeObject(forKey: Self.settingsKey)
     }
     #else
     func resetForTesting() {
