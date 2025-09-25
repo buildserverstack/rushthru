@@ -268,9 +268,17 @@ struct RefillView: View {
                 VStack(alignment: .leading) {
                     Text(task.name)
                         .font(.headline)
-                    Text("Requested: \(task.quantity)")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    Stepper(value: Binding(
+                        get: { task.quantity },
+                        set: { newValue in
+                            refill.updateManualTaskQuantity(taskID: task.id, quantity: newValue)
+                            HapticsManager.shared.playSelectionChanged()
+                        }
+                    ), in: 1...500) {
+                        Text("Requested: \(task.quantity)")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                     Text("Available: \(task.availableQuantity)")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
