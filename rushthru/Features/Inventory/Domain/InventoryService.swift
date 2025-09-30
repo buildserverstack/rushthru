@@ -13,19 +13,40 @@ final class InventoryService: ObservableObject {
 
     private let activityLogger: ActivityLogViewModel
     private let locationCoordinator: LocationsViewModel
+    private let stateURL: URL
     private var cancellables = Set<AnyCancellable>()
     private var storage: [UUID: [InventoryItem]] = [:]
     private var customTypeStore: [String] = []
     private var customSizeSet: Set<Int> = []
+    private var pendingSaveTask: Task<Void, Never>?
+    private var saveGeneration: UInt64 = 0
     private static let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         return encoder
     }()
+    private static let stateEncoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        return encoder
+    }()
+    private static let stateDecoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }()
 
     init(activityLogger: ActivityLogViewModel, locationCoordinator: LocationsViewModel) {
         self.activityLogger = activityLogger
         self.locationCoordinator = locationCoordinator
+        let fileManager = FileManager.default
+        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? fileManager.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory())
+        let directoryURL = baseURL.appendingPathComponent("Inventory", isDirectory: true)
+        try? fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+        self.stateURL = directoryURL.appendingPathComponent("inventory-state.json")
+        loadPersistedState()
         self.selectedStoreID = locationCoordinator.selectedStoreID
         locationCoordinator.$selectedStoreID
             .receive(on: DispatchQueue.main)
@@ -64,6 +85,7 @@ final class InventoryService: ObservableObject {
         lastUpdated = Date()
         activityLogger.log(action: .create, entity: .item, entityID: storedItem.id, before: nil, after: encode(storedItem))
         registerSize(storedItem.sizeML)
+        schedulePersist()
     }
 
     func existingItem(matching identity: ItemIdentity) -> InventoryItem? {
@@ -96,6 +118,7 @@ final class InventoryService: ObservableObject {
         refreshAvailableSizes()
         lastUpdated = Date()
         activityLogger.log(action: .import, entity: .batch, entityID: nil, before: nil, after: "Replaced with \(reassigned.count) items")
+        schedulePersist()
     }
 
     func update(item: InventoryItem) async {
@@ -114,6 +137,7 @@ final class InventoryService: ObservableObject {
         registerSize(updated.sizeML)
         lastUpdated = Date()
         activityLogger.log(action: .edit, entity: .item, entityID: updated.id, before: encode(before), after: encode(updated))
+        schedulePersist()
     }
 
     func incrementQuantity(itemID: UUID, delta: Int) async {
@@ -130,6 +154,7 @@ final class InventoryService: ObservableObject {
         }
         lastUpdated = Date()
         activityLogger.log(action: .edit, entity: .item, entityID: itemID, before: encode(before), after: encode(item))
+        schedulePersist()
     }
 
     func adjustQuantity(itemID: UUID, to quantity: Int) async {
@@ -146,6 +171,7 @@ final class InventoryService: ObservableObject {
         }
         lastUpdated = Date()
         activityLogger.log(action: .count, entity: .item, entityID: itemID, before: encode(before), after: encode(item))
+        schedulePersist()
     }
 
     func items(belowMinimumOnly: Bool) -> [InventoryItem] {
@@ -158,7 +184,11 @@ final class InventoryService: ObservableObject {
 
     @discardableResult
     func addCustomType(_ name: String) -> Bool {
-        return registerType(name)
+        let inserted = registerType(name)
+        if inserted {
+            schedulePersist()
+        }
+        return inserted
     }
 
     func removeCustomType(_ name: String) -> (removed: Bool, message: String?) {
@@ -172,6 +202,7 @@ final class InventoryService: ObservableObject {
         }
         customTypeStore.removeAll { ItemIdentity.normalizeType($0) == normalized }
         refreshAvailableTypes()
+        schedulePersist()
         return (true, nil)
     }
 
@@ -188,6 +219,7 @@ final class InventoryService: ObservableObject {
         }
         customSizeSet.insert(value)
         refreshAvailableSizes()
+        schedulePersist()
         return true
     }
 
@@ -201,6 +233,7 @@ final class InventoryService: ObservableObject {
         }
         customSizeSet.remove(value)
         refreshAvailableSizes()
+        schedulePersist()
         return (true, nil)
     }
 
@@ -219,6 +252,7 @@ final class InventoryService: ObservableObject {
         customSizeOptions = []
         lastUpdated = Date()
         activityLogger.log(action: .edit, entity: .batch, entityID: nil, before: nil, after: "Cleared all inventory data")
+        schedulePersist()
     }
 
     private func reloadItems(for storeID: UUID?) {
@@ -334,4 +368,60 @@ final class InventoryService: ObservableObject {
         guard let data = try? Self.encoder.encode(item) else { return nil }
         return String(data: data, encoding: .utf8)
     }
+
+    private func schedulePersist() {
+        let state = PersistedInventoryState(
+            storage: storage,
+            customTypes: customTypeStore,
+            customSizes: Array(customSizeSet),
+            lastUpdated: lastUpdated
+        )
+        let url = stateURL
+        saveGeneration &+= 1
+        let generation = saveGeneration
+        pendingSaveTask?.cancel()
+        pendingSaveTask = Task.detached(priority: .utility) { [weak self, state, url, generation] in
+            guard let self else { return }
+            do {
+                try Task.checkCancellation()
+                let data = try InventoryService.stateEncoder.encode(state)
+                try Task.checkCancellation()
+                let directory = url.deletingLastPathComponent()
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                let isLatest = await MainActor.run { generation == self.saveGeneration }
+                guard isLatest else { return }
+                try Task.checkCancellation()
+                try data.write(to: url, options: .atomic)
+            } catch is CancellationError {
+                return
+            } catch {
+                #if DEBUG
+                print("Inventory persistence error: \(error)")
+                #endif
+            }
+        }
+    }
+
+    private func loadPersistedState() {
+        guard let data = try? Data(contentsOf: stateURL) else { return }
+        do {
+            let state = try Self.stateDecoder.decode(PersistedInventoryState.self, from: data)
+            storage = state.storage
+            customTypeStore = state.customTypes
+            customSizeSet = Set(state.customSizes)
+            lastUpdated = state.lastUpdated
+            reloadItems(for: locationCoordinator.selectedStoreID)
+        } catch {
+            #if DEBUG
+            print("Failed to load inventory state: \(error)")
+            #endif
+        }
+    }
+}
+
+private struct PersistedInventoryState: Codable {
+    var storage: [UUID: [InventoryItem]]
+    var customTypes: [String]
+    var customSizes: [Int]
+    var lastUpdated: Date
 }

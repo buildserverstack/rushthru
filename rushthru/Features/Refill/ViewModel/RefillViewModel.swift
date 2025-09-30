@@ -41,6 +41,18 @@ final class RefillViewModel: ObservableObject {
         await inventoryService.incrementQuantity(itemID: itemID, delta: -movedQuantity)
     }
 
+    func updateManualTaskQuantity(taskID: UUID, quantity: Int) {
+        guard let storeID = inventoryService.selectedStoreID else { return }
+        let normalized = max(1, quantity)
+        if var tasks = manualTaskStorage[storeID], let index = tasks.firstIndex(where: { $0.id == taskID }) {
+            tasks[index].quantity = normalized
+            manualTaskStorage[storeID] = tasks
+        }
+        if let visibleIndex = manualTasks.firstIndex(where: { $0.id == taskID }) {
+            manualTasks[visibleIndex].quantity = normalized
+        }
+    }
+
     func addManualTask(name: String, quantity: Int, linkedItem: InventoryItem? = nil) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
